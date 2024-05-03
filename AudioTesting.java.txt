@@ -2,98 +2,59 @@ import javax.sound.sampled.*;
 import java.io.File;
 import java.io.IOException;
 
-public class AudioQualityChecker {
-    public static void main(String[] args) {
-        File audioFile = new File("path/to/audio/file.wav");
-        try {
-            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(audioFile);
-            byte[] audioData = new byte[(int) audioFile.length()];
-            audioInputStream.read(audioData);
+public class WavFileAnalysis {
 
-            // Calculate metrics
-            double snr = calculateSNR(audioData);
-            double rmse = calculateRMSE(audioData);
-            double psnr = calculatePSNR(rmse);
-            double dynamicRange = calculateDynamicRange(audioData);
-            double thd = calculateTHD(audioData);
+    public static void analyzeWavFile(String filePath) {
+        File file = new File(filePath);
 
-            // Output results
-            System.out.println("Signal-to-Noise Ratio (SNR): " + snr + " dB");
-            System.out.println("Root Mean Square Error (RMSE): " + rmse);
-            System.out.println("Peak Signal-to-Noise Ratio (PSNR): " + psnr + " dB");
-            System.out.println("Dynamic Range: " + dynamicRange);
-            System.out.println("Total Harmonic Distortion (THD): " + thd + " %");
+        try (AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(file)) {
+            AudioFormat format = audioInputStream.getFormat();
+            long audioFileLength = file.length();
+            int frameSize = format.getFrameSize();
+            float frameRate = format.getFrameRate();
+            float durationInSeconds = (audioFileLength / (frameSize * frameRate));
 
-            audioInputStream.close();
+            System.out.println("File: " + filePath);
+            System.out.println("Audio Format: " + format);
+            System.out.println("File Length: " + audioFileLength + " bytes");
+            System.out.println("Frame Size: " + frameSize + " bytes");
+            System.out.println("Frame Rate: " + frameRate + " frames/second");
+            System.out.println("Duration: " + durationInSeconds + " seconds");
+
+            // Detect silence (basic example)
+            detectSilence(audioInputStream, format);
+
         } catch (UnsupportedAudioFileException | IOException e) {
             e.printStackTrace();
         }
     }
 
-    // Calculate Signal-to-Noise Ratio (SNR)
-    private static double calculateSNR(byte[] audioData) {
-        double signalPower = calculateSignalPower(audioData);
-        double noisePower = calculateNoisePower(audioData);
-        return 10 * Math.log10(signalPower / noisePower);
-    }
+    private static void detectSilence(AudioInputStream audioInputStream, AudioFormat format) throws IOException {
+        byte[] bytes = new byte[1024];
+        int bytesRead;
+        boolean silenceDetected = false;
 
-    // Calculate Root Mean Square Error (RMSE)
-    private static double calculateRMSE(byte[] audioData) {
-        double signalPower = calculateSignalPower(audioData);
-        return Math.sqrt(signalPower);
-    }
-
-    // Calculate Peak Signal-to-Noise Ratio (PSNR)
-    private static double calculatePSNR(double rmse) {
-        double maxPixelValue = 255; // Assuming 8-bit audio
-        return 20 * Math.log10(maxPixelValue / rmse);
-    }
-
-    // Calculate Dynamic Range
-    private static double calculateDynamicRange(byte[] audioData) {
-        double maxAmplitude = Double.MIN_VALUE;
-        double minAmplitude = Double.MAX_VALUE;
-        for (byte b : audioData) {
-            double amplitude = Math.abs((double) b);
-            if (amplitude > maxAmplitude) {
-                maxAmplitude = amplitude;
+        while ((bytesRead = audioInputStream.read(bytes)) != -1) {
+            // Check if all bytes in the buffer are zero (simple silence detection)
+            silenceDetected = true;
+            for (int i = 0; i < bytesRead; i++) {
+                if (bytes[i] != 0) {
+                    silenceDetected = false;
+                    break;
+                }
             }
-            if (amplitude < minAmplitude) {
-                minAmplitude = amplitude;
+            if (silenceDetected) {
+                System.out.println("Silence detected in the audio stream.");
+                break;
             }
         }
-        return 20 * Math.log10(maxAmplitude / minAmplitude);
-    }
-
-    // Calculate Total Harmonic Distortion (THD)
-    private static double calculateTHD(byte[] audioData) {
-        // Calculate total harmonic distortion (THD)
-        double fundamentalPower = calculateSignalPower(audioData);
-        double totalPower = 0.0;
-        for (byte b : audioData) {
-            double amplitude = (double) b;
-            totalPower += amplitude * amplitude;
+        if (!silenceDetected) {
+            System.out.println("No silence detected in the audio stream.");
         }
-        double thd = 100 * Math.sqrt((totalPower - fundamentalPower) / fundamentalPower);
-        return thd;
     }
 
-    // Calculate signal power
-    private static double calculateSignalPower(byte[] audioData) {
-        double sum = 0.0;
-        for (byte b : audioData) {
-            sum += b * b;
-        }
-        return sum / audioData.length;
-    }
-
-    // Calculate noise power (assuming it's a portion of the audio)
-    private static double calculateNoisePower(byte[] audioData) {
-        // Select a portion of the audio as noise data
-        int start = audioData.length / 2;
-        int end = start + 1000; // Example: consider 1000 samples as noise
-        byte[] noiseData = new byte[1000];
-        System.arraycopy(audioData, start, noiseData, 0, 1000);
-        return calculateSignalPower(noiseData);
+    public static void main(String[] args) {
+        String filePath = "path_to_your_wav_file.wav";
+        analyzeWavFile(filePath);
     }
 }
