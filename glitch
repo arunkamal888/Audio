@@ -78,4 +78,8 @@ public class AudioQualityChecker {
         }
 
         double avgSignalPower = (signalCount > 0) ? signalPower / signalCount : 0;
-        double avgNoisePower = (noiseCount > 0) ? noisePower
+        double avgNoisePower = (noiseCount > 0) ? noisePower / noiseCount : 0;
+
+        return (avgNoisePower > 0) ? 10 * Math.log10(avgSignalPower / avgNoisePower) : Double.POSITIVE_INFINITY;
+    }
+}
