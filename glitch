@@ -1,71 +1,86 @@
 import javax.sound.sampled.*;
+import java.io.File;
+import java.io.IOException;
 
-public class AudioAnalyzer {
+public class AudioQualityChecker {
 
-    private static final int SAMPLE_RATE = 44100;  // Standard sample rate for CD audio
+    // Define threshold values for good quality audio
+    private static final double SNR_THRESHOLD = 20.0; // SNR should be above 20 dB for good quality
+    private static final double PEAK_AMPLITUDE_THRESHOLD = 0.9; // Peak amplitude close to 1 but not clipping
+    private static final double RMS_THRESHOLD = 0.1; // RMS should be reasonably high
 
-    public void analyzeAudio(String filePath) {
+    public static void main(String[] args) {
+        String filePath = "path_to_your_audio_file.wav"; // Specify the path to your audio file
+        File audioFile = new File(filePath);
+
         try {
-            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(new File(filePath));
+            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(audioFile);
             AudioFormat format = audioInputStream.getFormat();
-            byte[] audioBytes = audioInputStream.readAllBytes();
-            double[] audioData = convertToDoubleArray(audioBytes, format);
+            long frames = audioInputStream.getFrameLength();
+            double durationInSeconds = frames / format.getFrameRate();
 
-            detectGlitches(audioData);
-            detectEcho(audioData);
+            double[] samples = convertToSamples(audioInputStream, format);
 
+            double snr = calculateSNR(samples);
+            double peakAmplitude = findPeakAmplitude(samples);
+            double rmsAmplitude = calculateRMS(samples);
+
+            System.out.println("SNR: " + snr + " dB");
+            System.out.println("Peak Amplitude: " + peakAmplitude);
+            System.out.println("RMS Amplitude: " + rmsAmplitude);
+
+            // Evaluate audio quality
+            if (snr > SNR_THRESHOLD && peakAmplitude < PEAK_AMPLITUDE_THRESHOLD && rmsAmplitude > RMS_THRESHOLD) {
+                System.out.println("Audio Quality: Good");
+            } else {
+                System.out.println("Audio Quality: Not Good");
+            }
         } catch (UnsupportedAudioFileException | IOException e) {
             e.printStackTrace();
         }
     }
 
-    private double[] convertToDoubleArray(byte[] audioBytes, AudioFormat format) {
-        double[] audioData = new double[audioBytes.length / 2];
-        boolean isBigEndian = format.isBigEndian();
+    private static double[] convertToSamples(AudioInputStream stream, AudioFormat format) throws IOException {
+        byte[] audioBytes = stream.readAllBytes();
+        double[] samples = new double[audioBytes.length / 2];
 
+        boolean isBigEndian = format.isBigEndian();
         for (int i = 0, sampleIndex = 0; i < audioBytes.length; sampleIndex++, i += 2) {
-            int value = (isBigEndian) ?
+            int value = isBigEndian ?
                 ((audioBytes[i] & 0xFF) << 8 | (audioBytes[i + 1] & 0xFF)) :
                 ((audioBytes[i + 1] & 0xFF) << 8 | (audioBytes[i] & 0xFF));
-            audioData[sampleIndex] = value / 32768.0;  // Normalize to range [-1,1] for 16-bit audio
+            samples[sampleIndex] = value / 32768.0; // Normalizing to range [-1,1] for 16-bit audio
         }
-        return audioData;
+        return samples;
     }
 
-    private void detectGlitches(double[] audioData) {
-        double lastSample = 0;
-        double threshold = 0.2; // This threshold might need tuning based on your audio data
-
-        for (int i = 1; i < audioData.length; i++) {
-            double delta = Math.abs(audioData[i] - lastSample);
-            if (delta > threshold) {
-                System.out.println("Glitch detected at sample " + i + ", time " + i / (double)SAMPLE_RATE + "s");
-            }
-            lastSample = audioData[i];
+    private static double calculateSNR(double[] samples) {
+        double signalPower = 0, noisePower = 0, avgSignal = 0;
+        for (double sample : samples) {
+            avgSignal += sample;
         }
+        avgSignal /= samples.length;
+
+        for (double sample : samples) {
+            signalPower += Math.pow(sample - avgSignal, 2);
+            noisePower += Math.pow(avgSignal, 2);
+        }
+        return 10 * Math.log10(signalPower / noisePower);
     }
 
-    private void detectEcho(double[] audioData) {
-        int maxLag = SAMPLE_RATE / 2; // Searching for echo up to 0.5 seconds
-        double[] autocorrelation = new double[maxLag];
-
-        for (int lag = 0; lag < maxLag; lag++) {
-            double sum = 0;
-            for (int i = lag; i < audioData.length; i++) {
-                sum += audioData[i] * audioData[i - lag];
-            }
-            autocorrelation[lag] = sum / (audioData.length - lag);
+    private static double findPeakAmplitude(double[] samples) {
+        double peak = 0;
+        for (double sample : samples) {
+            peak = Math.max(peak, Math.abs(sample));
         }
-
-        for (int lag = 1; lag < maxLag; lag++) {
-            if (autocorrelation[lag] > 0.5 * autocorrelation[0]) {
-                System.out.println("Echo detected at delay of " + lag + " samples (" + (lag / (double)SAMPLE_RATE) + "s).");
-            }
-        }
+        return peak;
     }
 
-    public static void main(String[] args) {
-        AudioAnalyzer analyzer = new AudioAnalyzer();
-        analyzer.analyzeAudio("path/to/your/audiofile.wav");
+    private static double calculateRMS(double[] samples) {
+        double rms = 0;
+        for (double sample : samples) {
+            rms += sample * sample;
+        }
+        return Math.sqrt(rms / samples.length);
     }
 }
