@@ -2,28 +2,16 @@ import javax.sound.sampled.*;
 
 public class AudioAnalyzer {
 
-    private static final float GLITCH_THRESHOLD = 0.8f * 32768; // Threshold for glitch detection
-    private static final int SAMPLE_RATE = 44100; // Standard sample rate for CD audio
-    private static final int MAX_LAG = SAMPLE_RATE / 2; // Check for echo up to half a second
+    private static final float SAMPLE_RATE = 44100f;  // Assume CD quality audio
+    private static final int WINDOW_SIZE = 2048;  // Size of window for processing
 
     public void analyzeAudio(String filePath) {
         try {
-            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(new File(filePath));
-            AudioFormat format = audioInputStream.getFormat();
-            byte[] audioBytes = audioInputStream.readAllBytes();
-            double[] audioData = new double[audioBytes.length / 2];
+            AudioInputStream stream = AudioSystem.getAudioInputStream(new File(filePath));
+            AudioFormat format = stream.getFormat();
+            byte[] audioBytes = stream.readAllBytes();
+            double[] audioData = convertToDoubleArray(audioBytes, format);
 
-            // Convert bytes to audio samples
-            for (int i = 0, sampleIndex = 0; i < audioBytes.length; sampleIndex++, i += 2) {
-                int low = audioBytes[i] & 0xff;
-                int high = audioBytes[i + 1] & 0xff;
-                audioData[sampleIndex] = (high << 8) + low;
-            }
-
-            // Glitch detection
-            detectGlitches(audioData);
-            
-            // Echo detection
             detectEcho(audioData);
 
         } catch (UnsupportedAudioFileException | IOException e) {
@@ -31,34 +19,41 @@ public class AudioAnalyzer {
         }
     }
 
-    private void detectGlitches(double[] audioData) {
-        double lastSample = 0;
-        int glitches = 0;
-        for (double sample : audioData) {
-            if (Math.abs(sample - lastSample) > GLITCH_THRESHOLD) {
-                glitches++;
-                System.out.println("Glitch detected at sample position");
-            }
-            lastSample = sample;
+    private double[] convertToDoubleArray(byte[] audioBytes, AudioFormat format) {
+        double[] audioData = new double[audioBytes.length / 2];
+        for (int i = 0, sampleIndex = 0; i < audioBytes.length; sampleIndex++, i += 2) {
+            int low = audioBytes[i] & 0xff;
+            int high = audioBytes[i + 1] & 0xff;
+            audioData[sampleIndex] = (high << 8) + low;
         }
-        System.out.println("Total glitches detected: " + glitches);
+        return audioData;
     }
 
     private void detectEcho(double[] audioData) {
-        double[] correlations = new double[MAX_LAG];
-        for (int lag = 0; lag < MAX_LAG; lag++) {
-            for (int i = 0; i < audioData.length - lag; i++) {
-                correlations[lag] += audioData[i] * audioData[i + lag];
-            }
-            correlations[lag] /= (audioData.length - lag);
-        }
+        int maxLag = (int) (SAMPLE_RATE * 0.5);  // Maximum lag to check for echo (0.5 seconds)
+        double[] correlations = new double[maxLag];
 
-        for (int lag = 1; lag < MAX_LAG; lag++) {
-            if (correlations[lag] > 0.7 * correlations[0]) { // 70% of zero-lag correlation
-                System.out.println("Echo detected at lag " + lag + " samples.");
-                break;
+        // Windowed cross-correlation
+        for (int start = 0; start + WINDOW_SIZE < audioData.length; start += WINDOW_SIZE / 2) {
+            for (int lag = 0; lag < maxLag; lag++) {
+                double correlation = 0;
+                for (int i = 0; i < WINDOW_SIZE; i++) {
+                    if (start + i + lag < audioData.length) {
+                        correlation += audioData[start + i] * audioData[start + i + lag];
+                    }
+                }
+                if (correlation > someAdaptiveThreshold(correlation, lag, audioData)) {
+                    double time = (start + lag) / SAMPLE_RATE;
+                    System.out.println("Echo detected at: " + time + " seconds");
+                    break;
+                }
             }
         }
+    }
+
+    private double someAdaptiveThreshold(double correlation, int lag, double[] audioData) {
+        // Implement your adaptive threshold calculation here based on the characteristics of the audio segment
+        return 0.8 * correlation;  // Simplified example
     }
 
     public static void main(String[] args) {
