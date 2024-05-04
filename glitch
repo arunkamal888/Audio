@@ -1,0 +1,59 @@
+import javax.sound.sampled.*;
+
+public class AudioGlitchAndSilenceAnalyzer {
+
+    private static final float SILENCE_THRESHOLD = 0.01f;  // Silence threshold
+    private static final float GLITCH_THRESHOLD = 0.5f;    // Glitch threshold, define based on your needs
+    private static final int FRAME_SIZE = 2; // Assuming 16-bit audio
+
+    public void analyzeAudio(String filePath) {
+        try {
+            File audioFile = new File(filePath);
+            AudioInputStream stream = AudioSystem.getAudioInputStream(audioFile);
+            AudioFormat format = stream.getFormat();
+            long numFrames = stream.getFrameLength();
+            double durationInSeconds = numFrames / format.getFrameRate();
+
+            int bytesRead;
+            byte[] buffer = new byte[1024]; // Read in chunks of 1024 bytes
+            int silentFrames = 0;
+            int glitchFrames = 0;
+            float previousSample = 0;
+
+            while ((bytesRead = stream.read(buffer)) != -1) {
+                for (int i = 0; i < bytesRead; i += FRAME_SIZE) {
+                    int sample = buffer[i] & 0xFF | (buffer[i + 1] << 8); // Little-endian
+                    float normalizedSample = sample / 32768f; // Normalize to -1.0 to 1.0
+
+                    if (Math.abs(normalizedSample) < SILENCE_THRESHOLD) {
+                        silentFrames++;
+                    }
+
+                    // Detect glitch by sudden change
+                    if (Math.abs(normalizedSample - previousSample) > GLITCH_THRESHOLD) {
+                        glitchFrames++;
+                    }
+                    previousSample = normalizedSample;
+                }
+            }
+
+            double silentSeconds = silentFrames * FRAME_SIZE / format.getFrameRate();
+            double glitchSeconds = glitchFrames * FRAME_SIZE / format.getFrameRate();
+            double percentageSilence = (silentSeconds / durationInSeconds) * 100;
+            double percentageGlitch = (glitchSeconds / durationInSeconds) * 100;
+
+            System.out.println("Total Duration: " + durationInSeconds + " seconds");
+            System.out.println("Silent Duration: " + silentSeconds + " seconds");
+            System.out.println("Percentage of Silence: " + percentageSilence + "%");
+            System.out.println("Glitch Duration: " + glitchSeconds + " seconds");
+            System.out.println("Percentage of Glitches: " + percentageGlitch + "%");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void main(String[] args) {
+        new AudioGlitchAndSilenceAnalyzer().analyzeAudio("path/to/your/audiofile.wav");
+    }
+}
