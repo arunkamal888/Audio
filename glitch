@@ -5,10 +5,11 @@ import java.io.IOException;
 public class VoiceQualityAssessment {
 
     private static final double SNR_THRESHOLD = 15; // SNR threshold for good quality
-    private static final double VOLUME_THRESHOLD = 0.05; // Volume threshold for voice activity
+    private static final double ENERGY_THRESHOLD = 0.01; // Energy threshold for voice activity
+    private static final int ZERO_CROSSING_THRESHOLD = 10; // Zero crossing threshold
 
     public static void main(String[] args) {
-        String filePath = "path_to_your_audio_file.wav"; // Change this to your file path
+        String filePath = "path_to_your_audio_file.wav"; // Adjust path to your audio file
         File audioFile = new File(filePath);
         
         try {
@@ -16,14 +17,11 @@ public class VoiceQualityAssessment {
             AudioFormat format = stream.getFormat();
             double[] samples = extractSamples(stream, format);
 
-            boolean[] voiceActive = detectVoice(samples);
+            boolean[] voiceActive = detectVoice(samples, format);
             double snr = calculateSNR(samples, voiceActive);
             
-            if (snr > SNR_THRESHOLD) {
-                System.out.println("Audio Quality: Good");
-            } else {
-                System.out.println("Audio Quality: Not Good");
-            }
+            System.out.println("SNR: " + snr + " dB");
+            System.out.println("Audio Quality: " + (snr > SNR_THRESHOLD ? "Good" : "Not Good"));
         } catch (UnsupportedAudioFileException | IOException e) {
             e.printStackTrace();
         }
@@ -34,16 +32,32 @@ public class VoiceQualityAssessment {
         double[] samples = new double[audioBytes.length / 2];
 
         for (int i = 0, sampleIndex = 0; i < audioBytes.length; sampleIndex++, i += 2) {
-            int sample = (audioBytes[i] & 0xFF) | (audioBytes[i + 1] << 8);
+            int sample = ((audioBytes[i + 1] & 0xFF) << 8) | (audioBytes[i] & 0xFF);
             samples[sampleIndex] = sample / 32768.0; // Normalize to range [-1,1] for 16-bit audio
         }
         return samples;
     }
 
-    private static boolean[] detectVoice(double[] samples) {
+    private static boolean[] detectVoice(double[] samples, AudioFormat format) {
+        int sampleRate = (int) format.getFrameRate();
+        int frameSize = sampleRate / 10; // 100ms frames
         boolean[] voiceActive = new boolean[samples.length];
-        for (int i = 0; i < samples.length; i++) {
-            voiceActive[i] = Math.abs(samples[i]) > VOLUME_THRESHOLD;
+
+        for (int start = 0; start + frameSize < samples.length; start += frameSize) {
+            double sumEnergy = 0;
+            int zeroCrossings = 0;
+            for (int i = start; i < start + frameSize; i++) {
+                sumEnergy += samples[i] * samples[i];
+                if (i > start && ((samples[i] > 0 && samples[i - 1] < 0) || (samples[i] < 0 && samples[i - 1] > 0))) {
+                    zeroCrossings++;
+                }
+            }
+            double avgEnergy = sumEnergy / frameSize;
+            if (avgEnergy > ENERGY_THRESHOLD && zeroCrossings > ZERO_CROSSING_THRESHOLD) {
+                for (int i = start; i < start + frameSize; i++) {
+                    voiceActive[i] = true;
+                }
+            }
         }
         return voiceActive;
     }
@@ -64,7 +78,6 @@ public class VoiceQualityAssessment {
 
         double avgSignalPower = signalCount > 0 ? signalPower / signalCount : 0;
         double avgNoisePower = noiseCount > 0 ? noisePower / noiseCount : 0;
-
-        return 10 * Math.log10(avgSignalPower / avgNoisePower);
+        return avgNoisePower != 0 ? 10 * Math.log10(avgSignalPower / avgNoisePower) : Double.POSITIVE_INFINITY;
     }
 }
