@@ -2,35 +2,24 @@ import javax.sound.sampled.*;
 import java.io.File;
 import java.io.IOException;
 
-public class AudioQualityChecker {
+public class VoiceQualityAssessment {
 
-    // Define threshold values for good quality audio
-    private static final double SNR_THRESHOLD = 20.0; // SNR should be above 20 dB for good quality
-    private static final double PEAK_AMPLITUDE_THRESHOLD = 0.9; // Peak amplitude close to 1 but not clipping
-    private static final double RMS_THRESHOLD = 0.1; // RMS should be reasonably high
+    private static final double SNR_THRESHOLD = 15; // SNR threshold for good quality
+    private static final double VOLUME_THRESHOLD = 0.05; // Volume threshold for voice activity
 
     public static void main(String[] args) {
-        String filePath = "path_to_your_audio_file.wav"; // Specify the path to your audio file
+        String filePath = "path_to_your_audio_file.wav"; // Change this to your file path
         File audioFile = new File(filePath);
-
+        
         try {
-            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(audioFile);
-            AudioFormat format = audioInputStream.getFormat();
-            long frames = audioInputStream.getFrameLength();
-            double durationInSeconds = frames / format.getFrameRate();
+            AudioInputStream stream = AudioSystem.getAudioInputStream(audioFile);
+            AudioFormat format = stream.getFormat();
+            double[] samples = extractSamples(stream, format);
 
-            double[] samples = convertToSamples(audioInputStream, format);
-
-            double snr = calculateSNR(samples);
-            double peakAmplitude = findPeakAmplitude(samples);
-            double rmsAmplitude = calculateRMS(samples);
-
-            System.out.println("SNR: " + snr + " dB");
-            System.out.println("Peak Amplitude: " + peakAmplitude);
-            System.out.println("RMS Amplitude: " + rmsAmplitude);
-
-            // Evaluate audio quality
-            if (snr > SNR_THRESHOLD && peakAmplitude < PEAK_AMPLITUDE_THRESHOLD && rmsAmplitude > RMS_THRESHOLD) {
+            boolean[] voiceActive = detectVoice(samples);
+            double snr = calculateSNR(samples, voiceActive);
+            
+            if (snr > SNR_THRESHOLD) {
                 System.out.println("Audio Quality: Good");
             } else {
                 System.out.println("Audio Quality: Not Good");
@@ -40,47 +29,42 @@ public class AudioQualityChecker {
         }
     }
 
-    private static double[] convertToSamples(AudioInputStream stream, AudioFormat format) throws IOException {
+    private static double[] extractSamples(AudioInputStream stream, AudioFormat format) throws IOException {
         byte[] audioBytes = stream.readAllBytes();
         double[] samples = new double[audioBytes.length / 2];
 
-        boolean isBigEndian = format.isBigEndian();
         for (int i = 0, sampleIndex = 0; i < audioBytes.length; sampleIndex++, i += 2) {
-            int value = isBigEndian ?
-                ((audioBytes[i] & 0xFF) << 8 | (audioBytes[i + 1] & 0xFF)) :
-                ((audioBytes[i + 1] & 0xFF) << 8 | (audioBytes[i] & 0xFF));
-            samples[sampleIndex] = value / 32768.0; // Normalizing to range [-1,1] for 16-bit audio
+            int sample = (audioBytes[i] & 0xFF) | (audioBytes[i + 1] << 8);
+            samples[sampleIndex] = sample / 32768.0; // Normalize to range [-1,1] for 16-bit audio
         }
         return samples;
     }
 
-    private static double calculateSNR(double[] samples) {
-        double signalPower = 0, noisePower = 0, avgSignal = 0;
-        for (double sample : samples) {
-            avgSignal += sample;
+    private static boolean[] detectVoice(double[] samples) {
+        boolean[] voiceActive = new boolean[samples.length];
+        for (int i = 0; i < samples.length; i++) {
+            voiceActive[i] = Math.abs(samples[i]) > VOLUME_THRESHOLD;
         }
-        avgSignal /= samples.length;
-
-        for (double sample : samples) {
-            signalPower += Math.pow(sample - avgSignal, 2);
-            noisePower += Math.pow(avgSignal, 2);
-        }
-        return 10 * Math.log10(signalPower / noisePower);
+        return voiceActive;
     }
 
-    private static double findPeakAmplitude(double[] samples) {
-        double peak = 0;
-        for (double sample : samples) {
-            peak = Math.max(peak, Math.abs(sample));
-        }
-        return peak;
-    }
+    private static double calculateSNR(double[] samples, boolean[] voiceActive) {
+        double signalPower = 0, noisePower = 0;
+        int signalCount = 0, noiseCount = 0;
 
-    private static double calculateRMS(double[] samples) {
-        double rms = 0;
-        for (double sample : samples) {
-            rms += sample * sample;
+        for (int i = 0; i < samples.length; i++) {
+            if (voiceActive[i]) {
+                signalPower += samples[i] * samples[i];
+                signalCount++;
+            } else {
+                noisePower += samples[i] * samples[i];
+                noiseCount++;
+            }
         }
-        return Math.sqrt(rms / samples.length);
+
+        double avgSignalPower = signalCount > 0 ? signalPower / signalCount : 0;
+        double avgNoisePower = noiseCount > 0 ? noisePower / noiseCount : 0;
+
+        return 10 * Math.log10(avgSignalPower / avgNoisePower);
     }
 }
