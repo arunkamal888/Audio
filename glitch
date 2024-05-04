@@ -1,59 +1,68 @@
 import javax.sound.sampled.*;
 
-public class AudioGlitchAndSilenceAnalyzer {
+public class AudioAnalyzer {
 
-    private static final float SILENCE_THRESHOLD = 0.01f;  // Silence threshold
-    private static final float GLITCH_THRESHOLD = 0.5f;    // Glitch threshold, define based on your needs
-    private static final int FRAME_SIZE = 2; // Assuming 16-bit audio
+    private static final float GLITCH_THRESHOLD = 0.8f * 32768; // Threshold for glitch detection
+    private static final int SAMPLE_RATE = 44100; // Standard sample rate for CD audio
+    private static final int MAX_LAG = SAMPLE_RATE / 2; // Check for echo up to half a second
 
     public void analyzeAudio(String filePath) {
         try {
-            File audioFile = new File(filePath);
-            AudioInputStream stream = AudioSystem.getAudioInputStream(audioFile);
-            AudioFormat format = stream.getFormat();
-            long numFrames = stream.getFrameLength();
-            double durationInSeconds = numFrames / format.getFrameRate();
+            AudioInputStream audioInputStream = AudioSystem.getAudioInputStream(new File(filePath));
+            AudioFormat format = audioInputStream.getFormat();
+            byte[] audioBytes = audioInputStream.readAllBytes();
+            double[] audioData = new double[audioBytes.length / 2];
 
-            int bytesRead;
-            byte[] buffer = new byte[1024]; // Read in chunks of 1024 bytes
-            int silentFrames = 0;
-            int glitchFrames = 0;
-            float previousSample = 0;
-
-            while ((bytesRead = stream.read(buffer)) != -1) {
-                for (int i = 0; i < bytesRead; i += FRAME_SIZE) {
-                    int sample = buffer[i] & 0xFF | (buffer[i + 1] << 8); // Little-endian
-                    float normalizedSample = sample / 32768f; // Normalize to -1.0 to 1.0
-
-                    if (Math.abs(normalizedSample) < SILENCE_THRESHOLD) {
-                        silentFrames++;
-                    }
-
-                    // Detect glitch by sudden change
-                    if (Math.abs(normalizedSample - previousSample) > GLITCH_THRESHOLD) {
-                        glitchFrames++;
-                    }
-                    previousSample = normalizedSample;
-                }
+            // Convert bytes to audio samples
+            for (int i = 0, sampleIndex = 0; i < audioBytes.length; sampleIndex++, i += 2) {
+                int low = audioBytes[i] & 0xff;
+                int high = audioBytes[i + 1] & 0xff;
+                audioData[sampleIndex] = (high << 8) + low;
             }
 
-            double silentSeconds = silentFrames * FRAME_SIZE / format.getFrameRate();
-            double glitchSeconds = glitchFrames * FRAME_SIZE / format.getFrameRate();
-            double percentageSilence = (silentSeconds / durationInSeconds) * 100;
-            double percentageGlitch = (glitchSeconds / durationInSeconds) * 100;
+            // Glitch detection
+            detectGlitches(audioData);
+            
+            // Echo detection
+            detectEcho(audioData);
 
-            System.out.println("Total Duration: " + durationInSeconds + " seconds");
-            System.out.println("Silent Duration: " + silentSeconds + " seconds");
-            System.out.println("Percentage of Silence: " + percentageSilence + "%");
-            System.out.println("Glitch Duration: " + glitchSeconds + " seconds");
-            System.out.println("Percentage of Glitches: " + percentageGlitch + "%");
-
-        } catch (Exception e) {
+        } catch (UnsupportedAudioFileException | IOException e) {
             e.printStackTrace();
         }
     }
 
+    private void detectGlitches(double[] audioData) {
+        double lastSample = 0;
+        int glitches = 0;
+        for (double sample : audioData) {
+            if (Math.abs(sample - lastSample) > GLITCH_THRESHOLD) {
+                glitches++;
+                System.out.println("Glitch detected at sample position");
+            }
+            lastSample = sample;
+        }
+        System.out.println("Total glitches detected: " + glitches);
+    }
+
+    private void detectEcho(double[] audioData) {
+        double[] correlations = new double[MAX_LAG];
+        for (int lag = 0; lag < MAX_LAG; lag++) {
+            for (int i = 0; i < audioData.length - lag; i++) {
+                correlations[lag] += audioData[i] * audioData[i + lag];
+            }
+            correlations[lag] /= (audioData.length - lag);
+        }
+
+        for (int lag = 1; lag < MAX_LAG; lag++) {
+            if (correlations[lag] > 0.7 * correlations[0]) { // 70% of zero-lag correlation
+                System.out.println("Echo detected at lag " + lag + " samples.");
+                break;
+            }
+        }
+    }
+
     public static void main(String[] args) {
-        new AudioGlitchAndSilenceAnalyzer().analyzeAudio("path/to/your/audiofile.wav");
+        AudioAnalyzer analyzer = new AudioAnalyzer();
+        analyzer.analyzeAudio("path/to/your/audiofile.wav");
     }
 }
