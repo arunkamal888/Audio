@@ -2,29 +2,31 @@ import sys
 import json
 from vosk import Model, KaldiRecognizer
 import wave
+import os
+import re
 
-def transcribe_audio(model_path, audio_file):
-    # Load the Vosk model from the specified path
-    model = Model(model_path)
-    wf = wave.open(audio_file, "rb")
+def transcribe_numbers(model_path, audio_file):
+    # Ensure model and audio file paths are valid
+    if not os.path.exists(model_path):
+        print("Model path does not exist. Please check the path and try again.")
+        sys.exit(1)
+    if not os.path.exists(audio_file):
+        print("Audio file does not exist. Please check the path and try again.")
+        sys.exit(1)
 
-    # List of numbers as words you want to recognize
-    number_words = [
-        "zero", "one", "two", "three", "four", "five",
-        "six", "seven", "eight", "nine", "ten",
-        "eleven", "twelve", "thirteen", "fourteen", "fifteen",
-        "sixteen", "seventeen", "eighteen", "nineteen", "twenty",
-        "thirty", "forty", "fifty", "sixty", "seventy",
-        "eighty", "ninety", "hundred"
-    ]
+    try:
+        model = Model(model_path)
+        wf = wave.open(audio_file, "rb")
+    except FileNotFoundError:
+        print("File not found. Please check the file path.")
+        sys.exit(1)
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        sys.exit(1)
 
-    # Convert the list to a JSON format that includes it as the "words" field
-    grammar_json = json.dumps({"words": number_words})
+    # Prepare recognizer with the audio file sample rate
+    rec = KaldiRecognizer(model, wf.getframerate())
 
-    # Initialize the recognizer with the model, sample rate, and custom grammar
-    rec = KaldiRecognizer(model, wf.getframerate(), grammar_json)
-
-    # Read data from the file and process it through the recognizer
     results = []
     while True:
         data = wf.readframes(4000)
@@ -33,19 +35,19 @@ def transcribe_audio(model_path, audio_file):
         if rec.AcceptWaveform(data):
             results.append(rec.Result())
 
-    # Collect the final result
     results.append(rec.FinalResult())
-    # Combine all recognized text fragments
     transcription = " ".join([json.loads(result)['text'] for result in results if 'text' in json.loads(result)])
 
-    return transcription
+    # Filter out only numeric-related words or actual digits from the transcription
+    numbers_transcribed = re.findall(r'\b(zero|one|two|three|four|five|six|seven|eight|nine|ten|\d+)\b', transcription, re.IGNORECASE)
+    return ' '.join(numbers_transcribed)
 
 if __name__ == "__main__":
     if len(sys.argv) < 3:
-        print("Usage: python transcribe.py <model_path> <audio_file>")
+        print("Usage: python transcribe_numbers.py <model_path> <audio_file>")
         sys.exit(1)
 
     model_path = sys.argv[1]
     audio_file = sys.argv[2]
-    transcription = transcribe_audio(model_path, audio_file)
-    print(transcription)
+    result = transcribe_numbers(model_path, audio_file)
+    print("Transcribed Numbers:", result)
