@@ -1,22 +1,22 @@
+import sys
 import speech_recognition as sr
 
-# Initialize the recognizer
-recognizer = sr.Recognizer()
+def transcribe_audio(file_path):
+    recognizer = sr.Recognizer()
+    with sr.AudioFile(file_path) as source:
+        recognizer.adjust_for_ambient_noise(source)
+        audio_data = recognizer.record(source)
+        try:
+            text = recognizer.recognize_google(audio_data)
+            print("Transcription: " + text)
+        except sr.UnknownValueError:
+            print("Could not understand audio")
+        except sr.RequestError as e:
+            print("Error from service: {0}".format(e))
 
-# Path to your WAV file
-audio_file_path = 'path_to_your_audio_file.wav'
-
-# Use the audio file as the source
-with sr.AudioFile(audio_file_path) as source:
-    # Adjust for ambient noise and record
-    recognizer.adjust_for_ambient_noise(source)
-    audio_data = recognizer.record(source)  # read the entire audio file
-
-    # Attempt to recognize the speech in the audio
-    try:
-        text = recognizer.recognize_google(audio_data)
-        print("Transcription: " + text)  # Output the transcribed text
-    except sr.UnknownValueError:
-        print("Google Speech Recognition could not understand the audio")
-    except sr.RequestError as e:
-        print("Could not request results from Google Speech Recognition service; {0}".format(e))
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        audio_file_path = sys.argv[1]
+        transcribe_audio(audio_file_path)
+    else:
+        print("Please provide the path to the audio file")
