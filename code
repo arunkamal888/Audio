@@ -1,0 +1,52 @@
+import sys
+import json
+from vosk import Model, KaldiRecognizer
+import wave
+
+def transcribe_audio(model_path, audio_file):
+    # Load the model from the specified path
+    model = Model(model_path)
+    wf = wave.open(audio_file, "rb")
+
+    # Define a custom grammar list for the recognizer
+    # This list includes numbers from zero to twenty, multiples of ten up to a hundred,
+    # and 'hundred' itself. You might want to expand this list depending on your needs.
+    grammar = json.dumps({
+        "words": [
+            "zero", "one", "two", "three", "four", "five", 
+            "six", "seven", "eight", "nine", "ten", 
+            "eleven", "twelve", "thirteen", "fourteen", "fifteen", 
+            "sixteen", "seventeen", "eighteen", "nineteen", "twenty", 
+            "thirty", "forty", "fifty", "sixty", "seventy", 
+            "eighty", "ninety", "hundred"
+        ]
+    })
+
+    # Set up the recognizer with the model, sample rate, and custom grammar
+    rec = KaldiRecognizer(model, wf.getframerate(), grammar)
+
+    # Process the entire audio file
+    results = []
+    while True:
+        data = wf.readframes(4000)
+        if len(data) == 0:
+            break
+        if rec.AcceptWaveform(data):
+            results.append(rec.Result())
+
+    # Add the final result
+    results.append(rec.FinalResult())
+
+    # Parse and return the transcription
+    transcription = " ".join([json.loads(result)['text'] for result in results if 'text' in json.loads(result)])
+    return transcription
+
+if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print("Usage: python transcribe.py <model_path> <audio_file>")
+        sys.exit(1)
+
+    model_path = sys.argv[1]
+    audio_file = sys.argv[2]
+    transcription = transcribe_audio(model_path, audio_file)
+    print(transcription)
