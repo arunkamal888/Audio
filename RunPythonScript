@@ -3,23 +3,27 @@ import java.io.*;
 public class RunPythonScript {
     public static void main(String[] args) {
         try {
-            // Command to run Python script
             String pythonScriptPath = "path_to_your_script/speech_to_text.py";
-            String[] cmd = new String[3];
-            cmd[0] = "python"; // or python3, depending on the version and environment
-            cmd[1] = pythonScriptPath;
-            cmd[2] = "path_to_your_audio_file.wav";  // Argument to Python script if needed
+            String[] cmd = new String[]{"python", pythonScriptPath, "path_to_your_audio_file.wav"};
 
-            // Using ProcessBuilder to run Python script
             ProcessBuilder pb = new ProcessBuilder(cmd);
             Process process = pb.start();
 
-            // To read output from the Python script
-            BufferedReader bfr = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line = "";
-            System.out.println("Output of the Python script:");
-            while ((line = bfr.readLine()) != null) {
-                System.out.println(line);
+            // Read output from the Python script
+            BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+
+            // Read the output from the command
+            System.out.println("Here is the standard output of the command:\n");
+            String s = null;
+            while ((s = stdInput.readLine()) != null) {
+                System.out.println(s);
+            }
+
+            // Read any errors from the attempted command
+            System.out.println("Here is the standard error of the command (if any):\n");
+            while ((s = stdError.readLine()) != null) {
+                System.out.println(s);
             }
 
         } catch (Exception ex) {
