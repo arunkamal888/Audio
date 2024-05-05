@@ -4,28 +4,26 @@ public class RunPythonScript {
     public static void main(String[] args) {
         try {
             String pythonScriptPath = "path_to_your_script/speech_to_text.py";
-            String[] cmd = new String[]{"python", pythonScriptPath, "path_to_your_audio_file.wav"};
+            String audioFilePath = "path_to_your_audio_file.wav";
+            String[] cmd = new String[]{"python", pythonScriptPath, audioFilePath}; // Use "python3" if applicable
 
             ProcessBuilder pb = new ProcessBuilder(cmd);
             Process process = pb.start();
 
-            // Read output from the Python script
+            // Reading output and errors
             BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
             BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
 
-            // Read the output from the command
-            System.out.println("Here is the standard output of the command:\n");
-            String s = null;
-            while ((s = stdInput.readLine()) != null) {
-                System.out.println(s);
+            System.out.println("Output of the Python script:");
+            String line;
+            while ((line = stdInput.readLine()) != null) {
+                System.out.println(line);
             }
 
-            // Read any errors from the attempted command
-            System.out.println("Here is the standard error of the command (if any):\n");
-            while ((s = stdError.readLine()) != null) {
-                System.out.println(s);
+            System.out.println("Errors (if any):");
+            while ((line = stdError.readLine()) != null) {
+                System.out.println(line);
             }
-
         } catch (Exception ex) {
             ex.printStackTrace();
         }
