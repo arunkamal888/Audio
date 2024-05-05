@@ -4,28 +4,27 @@ from vosk import Model, KaldiRecognizer
 import wave
 
 def transcribe_audio(model_path, audio_file):
-    # Load the model from the specified path
+    # Load the Vosk model from the specified path
     model = Model(model_path)
     wf = wave.open(audio_file, "rb")
 
-    # Define a custom grammar list for the recognizer
-    # This list includes numbers from zero to twenty, multiples of ten up to a hundred,
-    # and 'hundred' itself. You might want to expand this list depending on your needs.
-    grammar = json.dumps({
-        "words": [
-            "zero", "one", "two", "three", "four", "five", 
-            "six", "seven", "eight", "nine", "ten", 
-            "eleven", "twelve", "thirteen", "fourteen", "fifteen", 
-            "sixteen", "seventeen", "eighteen", "nineteen", "twenty", 
-            "thirty", "forty", "fifty", "sixty", "seventy", 
-            "eighty", "ninety", "hundred"
-        ]
-    })
+    # List of numbers as words you want to recognize
+    number_words = [
+        "zero", "one", "two", "three", "four", "five",
+        "six", "seven", "eight", "nine", "ten",
+        "eleven", "twelve", "thirteen", "fourteen", "fifteen",
+        "sixteen", "seventeen", "eighteen", "nineteen", "twenty",
+        "thirty", "forty", "fifty", "sixty", "seventy",
+        "eighty", "ninety", "hundred"
+    ]
 
-    # Set up the recognizer with the model, sample rate, and custom grammar
-    rec = KaldiRecognizer(model, wf.getframerate(), grammar)
+    # Convert the list to a JSON format that includes it as the "words" field
+    grammar_json = json.dumps({"words": number_words})
 
-    # Process the entire audio file
+    # Initialize the recognizer with the model, sample rate, and custom grammar
+    rec = KaldiRecognizer(model, wf.getframerate(), grammar_json)
+
+    # Read data from the file and process it through the recognizer
     results = []
     while True:
         data = wf.readframes(4000)
@@ -34,11 +33,11 @@ def transcribe_audio(model_path, audio_file):
         if rec.AcceptWaveform(data):
             results.append(rec.Result())
 
-    # Add the final result
+    # Collect the final result
     results.append(rec.FinalResult())
-
-    # Parse and return the transcription
+    # Combine all recognized text fragments
     transcription = " ".join([json.loads(result)['text'] for result in results if 'text' in json.loads(result)])
+
     return transcription
 
 if __name__ == "__main__":
