@@ -1,31 +1,30 @@
 import java.io.*;
 
-public class RunPythonScript {
+public class PythonExecutor {
     public static void main(String[] args) {
         try {
-            String pythonScriptPath = "path_to_your_script/speech_to_text.py";
-            String audioFilePath = "path_to_your_audio_file.wav";
-            String[] cmd = new String[]{"python", pythonScriptPath, audioFilePath}; // Use "python3" if applicable
+            // Command to execute the Python script
+            String pythonScriptPath = "/path/to/your/script.py";
+            ProcessBuilder processBuilder = new ProcessBuilder("python", pythonScriptPath);
+            processBuilder.redirectErrorStream(true); // Redirect errors to the output stream
 
-            ProcessBuilder pb = new ProcessBuilder(cmd);
-            Process process = pb.start();
+            // Start the process
+            Process process = processBuilder.start();
 
-            // Reading output and errors
-            BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
-            System.out.println("Output of the Python script:");
+            // Read the output from the process
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line;
-            while ((line = stdInput.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
                 System.out.println(line);
             }
 
-            System.out.println("Errors (if any):");
-            while ((line = stdError.readLine()) != null) {
-                System.out.println(line);
-            }
-        } catch (Exception ex) {
-            ex.printStackTrace();
+            // Wait for the process to finish and check the exit value
+            int exitCode = process.waitFor();
+            System.out.println("Exited with code : " + exitCode);
+        } catch (IOException e) {
+            System.err.println("IOException occurred: " + e.getMessage());
+        } catch (InterruptedException e) {
+            System.err.println("Process was interrupted: " + e.getMessage());
         }
     }
 }
