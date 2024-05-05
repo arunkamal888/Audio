@@ -1,0 +1,49 @@
+import sys
+import json
+from vosk import Model, KaldiRecognizer
+import wave
+
+# Expanded mapping to include numbers up to one hundred and common phrases
+num_word_to_digit = {
+    'zero': '0', 'one': '1', 'two': '2', 'three': '3', 'four': '4',
+    'five': '5', 'six': '6', 'seven': '7', 'eight': '8', 'nine': '9',
+    'ten': '10', 'eleven': '11', 'twelve': '12', 'thirteen': '13',
+    'fourteen': '14', 'fifteen': '15', 'sixteen': '16', 'seventeen': '17',
+    'eighteen': '18', 'nineteen': '19', 'twenty': '20', 'thirty': '30',
+    'forty': '40', 'fifty': '50', 'sixty': '60', 'seventy': '70', 
+    'eighty': '80', 'ninety': '90', 'hundred': '100'
+}
+
+def transcribe_audio(model_path, audio_file):
+    model = Model(model_path)
+    wf = wave.open(audio_file, "rb")
+    rec = KaldiRecognizer(model, wf.getframerate())
+
+    results = []
+    while True:
+        data = wf.readframes(4000)
+        if len(data) == 0:
+            break
+        if rec.AcceptWaveform(data):
+            part_result = json.loads(rec.Result())
+            results.append(part_result['text'])
+
+    final_result = json.loads(rec.FinalResult())
+    results.append(final_result['text'])
+
+    # Convert spoken numbers to digits or numbers
+    digit_transcription = ' '.join(results)
+    for word, digit in num_word_to_digit.items():
+        digit_transcription = digit_transcription.replace(word, digit)
+
+    return digit_transcription
+
+if __name__ == "__main__":
+    if len(sys.argv) < 3:
+        print("Usage: python transcribe.py <model_path> <audio_file>")
+        sys.exit(1)
+
+    model_path = sys.argv[1]
+    audio_file = sys.argv[2]
+    result = transcribe_audio(model_path, audio_file)
+    print(result)
