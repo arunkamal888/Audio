@@ -2,11 +2,15 @@ import sys
 import speech_recognition as sr
 
 def transcribe_audio(file_path):
+    print("Script started...")  # Debugging output
     recognizer = sr.Recognizer()
     with sr.AudioFile(file_path) as source:
+        print("File loaded, adjusting for ambient noise...")  # Debugging output
         recognizer.adjust_for_ambient_noise(source)
+        print("Recording audio...")  # Debugging output
         audio_data = recognizer.record(source)
         try:
+            print("Recognizing...")  # Debugging output
             text = recognizer.recognize_google(audio_data)
             print("Transcription: " + text)
         except sr.UnknownValueError:
