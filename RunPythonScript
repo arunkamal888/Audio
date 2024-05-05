@@ -3,7 +3,7 @@ import java.io.*;
 public class PythonExecutor {
     public static void main(String[] args) {
         try {
-            // Command to execute the Python script
+            // Specify the path to the Python script
             String pythonScriptPath = "/path/to/your/script.py";
             ProcessBuilder processBuilder = new ProcessBuilder("python", pythonScriptPath);
             processBuilder.redirectErrorStream(true); // Redirect errors to the output stream
@@ -11,16 +11,25 @@ public class PythonExecutor {
             // Start the process
             Process process = processBuilder.start();
 
+            // StringBuilder to store the output
+            StringBuilder output = new StringBuilder();
+
             // Read the output from the process
             BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
             String line;
             while ((line = reader.readLine()) != null) {
-                System.out.println(line);
+                output.append(line + "\n");  // Append each line to the StringBuilder and add a newline
             }
 
             // Wait for the process to finish and check the exit value
             int exitCode = process.waitFor();
             System.out.println("Exited with code : " + exitCode);
+
+            // Convert StringBuilder to String and use it
+            String resultString = output.toString();
+            System.out.println("Output of the Python script:");
+            System.out.println(resultString);
+
         } catch (IOException e) {
             System.err.println("IOException occurred: " + e.getMessage());
         } catch (InterruptedException e) {
