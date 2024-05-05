@@ -1,0 +1,29 @@
+import java.io.*;
+
+public class RunPythonScript {
+    public static void main(String[] args) {
+        try {
+            // Command to run Python script
+            String pythonScriptPath = "path_to_your_script/speech_to_text.py";
+            String[] cmd = new String[3];
+            cmd[0] = "python"; // or python3, depending on the version and environment
+            cmd[1] = pythonScriptPath;
+            cmd[2] = "path_to_your_audio_file.wav";  // Argument to Python script if needed
+
+            // Using ProcessBuilder to run Python script
+            ProcessBuilder pb = new ProcessBuilder(cmd);
+            Process process = pb.start();
+
+            // To read output from the Python script
+            BufferedReader bfr = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line = "";
+            System.out.println("Output of the Python script:");
+            while ((line = bfr.readLine()) != null) {
+                System.out.println(line);
+            }
+
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+}
