@@ -1,0 +1,31 @@
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+public class TranscribeNumbers {
+    public static void main(String[] args) {
+        String pythonScriptPath = "path_to_your_python_script/transcribe.py";
+        String modelPath = "path_to_your_model";
+        String audioFilePath = "path_to_your_audio_file.wav";  // Ensure this is a mono WAV file with appropriate sample rate
+
+        String[] command = new String[]{"python", pythonScriptPath, modelPath, audioFilePath};
+
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        processBuilder.redirectErrorStream(true);
+
+        try {
+            Process process = processBuilder.start();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+
+            int exitCode = process.waitFor();
+            System.out.println("Python script exited with code: " + exitCode);
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
