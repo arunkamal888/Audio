@@ -1,25 +1,45 @@
-import sys
-import speech_recognition as sr
+import java.io.*;
+import java.net.URISyntaxException;
+import java.net.URL;
 
-def transcribe_audio(file_path):
-    recognizer = sr.Recognizer()
-    with sr.AudioFile(file_path) as source:
-        print("Adjusting for ambient noise...")
-        recognizer.adjust_for_ambient_noise(source)
-        print("Recording audio...")
-        audio_data = recognizer.record(source)
-        try:
-            print("Recognizing...")
-            text = recognizer.recognize_google(audio_data)
-            print("Transcription: " + text)
-        except sr.UnknownValueError:
-            print("Could not understand audio")
-        except sr.RequestError as e:
-            print("Error from service: {0}".format(e))
+public class PythonExecutor {
+    public static void main(String[] args) {
+        try {
+            // Path to the audio file - ensure this path is valid in your environment
+            String audioFilePath = "/path/to/your/audio.wav";
 
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        audio_file_path = sys.argv[1]
-        transcribe_audio(audio_file_path)
-    else:
-        print("Please provide the path to the audio file")
+            // Get the Python script from resources
+            File pythonScriptFile = getScriptFile("transcribe_audio.py");
+
+            // Execute Python script using ProcessBuilder
+            ProcessBuilder processBuilder = new ProcessBuilder("python", pythonScriptFile.getAbsolutePath(), audioFilePath);
+            processBuilder.redirectErrorStream(true);
+            Process process = processBuilder.start();
+
+            // Output the result
+            printProcessOutput(process);
+
+        } catch (Exception e) {
+            System.err.println("An error occurred: " + e.getMessage());
+        }
+    }
+
+    private static File getScriptFile(String scriptName) throws URISyntaxException {
+        URL scriptUrl = PythonExecutor.class.getClassLoader().getResource(scriptName);
+        if (scriptUrl == null) {
+            throw new IllegalArgumentException("Script file not found: " + scriptName);
+        }
+        return new File(scriptUrl.toURI());
+    }
+
+    private static void printProcessOutput(Process process) throws IOException, InterruptedException {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line);
+            }
+        }
+        int exitCode = process.waitFor();
+        System.out.println("Process exited with code: " + exitCode);
+    }
+}
