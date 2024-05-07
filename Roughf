@@ -1,44 +1,25 @@
-import java.io.*;
+import sys
+import speech_recognition as sr
 
-public class PythonExecutor {
-    public static void main(String[] args) {
-        // Hard-coded path to the audio file
-        String audioFilePath = "/absolute/path/to/your/audio.wav";  // Adjust this to the path of your audio file
+def transcribe_audio(file_path):
+    recognizer = sr.Recognizer()
+    with sr.AudioFile(file_path) as source:
+        print("Adjusting for ambient noise...")
+        recognizer.adjust_for_ambient_noise(source)
+        print("Recording audio...")
+        audio_data = recognizer.record(source)
+        try:
+            print("Recognizing...")
+            text = recognizer.recognize_google(audio_data)
+            print("Transcription: " + text)
+        except sr.UnknownValueError:
+            print("Could not understand audio")
+        except sr.RequestError as e:
+            print("Error from service: {0}".format(e))
 
-        try {
-            // Path to the Python script
-            String pythonScriptPath = "/absolute/path/to/your/transcribe_audio.py";  // Ensure this path is correct
-
-            // Setup the ProcessBuilder
-            // Use "python" or "python3" depending on your system configuration
-            ProcessBuilder processBuilder = new ProcessBuilder("python", pythonScriptPath, audioFilePath);
-            processBuilder.redirectErrorStream(true); // Redirect errors to the output stream
-
-            // Start the process
-            Process process = processBuilder.start();
-
-            // StringBuilder to store the output
-            StringBuilder output = new StringBuilder();
-
-            // Read the output from the process
-            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            String line;
-            while ((line = reader.readLine()) != null) {
-                output.append(line).append("\n");
-            }
-
-            // Wait for the process to finish and check the exit value
-            int exitCode = process.waitFor();
-            System.out.println("Exited with code : " + exitCode);
-
-            // Output the result
-            System.out.println("Output of the Python script:");
-            System.out.println(output.toString());
-
-        } catch (IOException e) {
-            System.err.println("IOException occurred: " + e.getMessage());
-        } catch (InterruptedException e) {
-            System.err.println("Process was interrupted: " + e.getMessage());
-        }
-    }
-}
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        audio_file_path = sys.argv[1]
+        transcribe_audio(audio_file_path)
+    else:
+        print("Please provide the path to the audio file")
