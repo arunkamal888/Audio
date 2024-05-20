@@ -1,45 +1,49 @@
-import java.io.*;
-import java.net.URISyntaxException;
-import java.net.URL;
+package your.package.name;
 
-public class PythonExecutor {
-    public static void main(String[] args) {
-        try {
-            // Path to the audio file - ensure this path is valid in your environment
-            String audioFilePath = "/path/to/your/audio.wav";
+import cucumber.api.CucumberOptions;
+import cucumber.api.junit.Cucumber;
+import org.junit.runner.JUnitCore;
+import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
+import org.junit.runners.Suite;
+import org.junit.runners.model.InitializationError;
 
-            // Get the Python script from resources
-            File pythonScriptFile = getScriptFile("transcribe_audio.py");
+import java.util.ArrayList;
+import java.util.List;
 
-            // Execute Python script using ProcessBuilder
-            ProcessBuilder processBuilder = new ProcessBuilder("python", pythonScriptFile.getAbsolutePath(), audioFilePath);
-            processBuilder.redirectErrorStream(true);
-            Process process = processBuilder.start();
+@RunWith(Suite.class)
+@Suite.SuiteClasses({ParallelCucumberTest.ParallelRunner.class})
+public class ParallelCucumberTest {
 
-            // Output the result
-            printProcessOutput(process);
+    @CucumberOptions(
+            features = "src/test/resources/features",
+            glue = "your.package.name.steps",
+            plugin = {"pretty", "html:target/cucumber-parallel"},
+            monochrome = true
+    )
+    public static class ParallelRunner extends Suite {
 
-        } catch (Exception e) {
-            System.err.println("An error occurred: " + e.getMessage());
+        public ParallelRunner(Class<?> klass, org.junit.runners.model.RunnerBuilder builder) throws InitializationError {
+            super(klass, builder);
         }
-    }
 
-    private static File getScriptFile(String scriptName) throws URISyntaxException {
-        URL scriptUrl = PythonExecutor.class.getClassLoader().getResource(scriptName);
-        if (scriptUrl == null) {
-            throw new IllegalArgumentException("Script file not found: " + scriptName);
-        }
-        return new File(scriptUrl.toURI());
-    }
-
-    private static void printProcessOutput(Process process) throws IOException, InterruptedException {
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-            String line;
-            while ((line = reader.readLine()) != null) {
-                System.out.println(line);
+        @Override
+        protected List<org.junit.runner.Runner> getChildren() {
+            List<org.junit.runner.Runner> children = super.getChildren();
+            List<org.junit.runner.Runner> parallelizedChildren = new ArrayList<>();
+            for (org.junit.runner.Runner child : children) {
+                parallelizedChildren.add(new ParallelRunner(child.getDescription().getTestClass(), new org.junit.runners.model.RunnerBuilder() {
+                    @Override
+                    public org.junit.runner.Runner runnerForClass(Class<?> testClass) throws Throwable {
+                        return child;
+                    }
+                }));
             }
+            return parallelizedChildren;
         }
-        int exitCode = process.waitFor();
-        System.out.println("Process exited with code: " + exitCode);
+    }
+
+    public static void main(String[] args) {
+        JUnitCore.main("your.package.name.ParallelCucumberTest");
     }
 }
