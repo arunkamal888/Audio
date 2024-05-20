@@ -2,45 +2,86 @@ package your.package.name;
 
 import cucumber.api.CucumberOptions;
 import cucumber.api.junit.Cucumber;
+import org.junit.AfterClass;
 import org.junit.runner.JUnitCore;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.junit.runners.Suite;
-import org.junit.runners.model.InitializationError;
+import org.junit.runners.Parameterized.Parameters;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-@RunWith(Suite.class)
-@Suite.SuiteClasses({ParallelCucumberTest.ParallelRunner.class})
+@RunWith(ParallelCucumberTest.ParallelRunner.class)
+@CucumberOptions(
+        features = "src/test/resources/features",
+        glue = "your.package.name.steps",
+        plugin = {"pretty", "html:target/cucumber-parallel"},
+        monochrome = true
+)
 public class ParallelCucumberTest {
 
-    @CucumberOptions(
-            features = "src/test/resources/features",
-            glue = "your.package.name.steps",
-            plugin = {"pretty", "html:target/cucumber-parallel"},
-            monochrome = true
-    )
-    public static class ParallelRunner extends Suite {
+    private static final int THREAD_COUNT = 4;
 
-        public ParallelRunner(Class<?> klass, org.junit.runners.model.RunnerBuilder builder) throws InitializationError {
-            super(klass, builder);
+    public static class ParallelRunner extends Parameterized {
+
+        public ParallelRunner(Class<?> klass) throws Throwable {
+            super(klass);
+        }
+
+        @Parameters
+        public static Iterable<Object[]> data() {
+            List<Object[]> result = new ArrayList<>();
+            for (Class<?> testClass : getTestClasses()) {
+                result.add(new Object[]{testClass});
+            }
+            return result;
+        }
+
+        private static List<Class<?>> getTestClasses() {
+            // Assuming this method returns a list of test classes to be executed
+            return Collections.emptyList(); // Replace with actual test class discovery logic
         }
 
         @Override
-        protected List<org.junit.runner.Runner> getChildren() {
-            List<org.junit.runner.Runner> children = super.getChildren();
-            List<org.junit.runner.Runner> parallelizedChildren = new ArrayList<>();
-            for (org.junit.runner.Runner child : children) {
-                parallelizedChildren.add(new ParallelRunner(child.getDescription().getTestClass(), new org.junit.runners.model.RunnerBuilder() {
-                    @Override
-                    public org.junit.runner.Runner runnerForClass(Class<?> testClass) throws Throwable {
-                        return child;
-                    }
+        protected List<Runner> getChildren() {
+            List<Runner> runners = new ArrayList<>();
+            ExecutorService executorService = Executors.newFixedThreadPool(THREAD_COUNT);
+            List<Future<List<Runner>>> futures = new ArrayList<>();
+
+            for (final Runner child : super.getChildren()) {
+                futures.add(executorService.submit(() -> {
+                    List<Runner> result = new ArrayList<>();
+                    result.add(child);
+                    return result;
                 }));
             }
-            return parallelizedChildren;
+
+            for (Future<List<Runner>> future : futures) {
+                try {
+                    runners.addAll(future.get());
+                } catch (InterruptedException | ExecutionException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            executorService.shutdown();
+            try {
+                executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            return runners;
         }
+    }
+
+    @AfterClass
+    public static void tearDown() {
+        // Clean up after tests
     }
 
     public static void main(String[] args) {
