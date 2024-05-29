@@ -1,0 +1,44 @@
+package com.example.tests;
+
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import org.openqa.selenium.remote.DesiredCapabilities;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Parameters;
+import org.testng.annotations.Test;
+
+import java.net.URL;
+
+public class SauceLabsTest {
+    private WebDriver driver;
+
+    @BeforeMethod
+    @Parameters({"browser", "browserVersion", "platform"})
+    public void setUp(String browser, String browserVersion, String platform) throws Exception {
+        DesiredCapabilities capabilities = new DesiredCapabilities();
+        capabilities.setCapability("browserName", browser);
+        capabilities.setCapability("browserVersion", browserVersion);
+        capabilities.setCapability("platformName", platform);
+        capabilities.setCapability("name", "SauceLabsTest");
+
+        String sauceUserName = System.getenv("SAUCE_USERNAME");
+        String sauceAccessKey = System.getenv("SAUCE_ACCESS_KEY");
+        String sauceUrl = "https://" + sauceUserName + ":" + sauceAccessKey + "@ondemand.saucelabs.com:443/wd/hub";
+
+        driver = new RemoteWebDriver(new URL(sauceUrl), capabilities);
+    }
+
+    @Test
+    public void test() {
+        driver.get("https://www.example.com");
+        // Your test code here
+    }
+
+    @AfterMethod
+    public void tearDown() {
+        if (driver != null) {
+            driver.quit();
+        }
+    }
+}
