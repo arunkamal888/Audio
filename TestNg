@@ -1,0 +1,66 @@
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.remote.DesiredCapabilities;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Parameters;
+import org.testng.annotations.Test;
+
+import java.lang.reflect.Method;
+import java.net.MalformedURLException;
+import java.net.URL;
+
+public class SauceTestBase {
+
+    // Using ThreadLocal to manage WebDriver instances for parallel execution
+    private static ThreadLocal<WebDriver> driver = new ThreadLocal<>();
+
+    @BeforeMethod
+    @Parameters({"browser", "version", "platform"})
+    public void setup(String browser, String version, String platform, Method method) throws MalformedURLException {
+        String username = System.getenv("SAUCE_USERNAME");
+        String accessKey = System.getenv("SAUCE_ACCESS_KEY");
+
+        DesiredCapabilities caps = new DesiredCapabilities();
+        caps.setCapability("browserName", browser);
+        caps.setCapability("version", version);
+        caps.setCapability("platform", platform);
+        caps.setCapability("name", method.getName());
+        // Set the maxDuration to 300 seconds (5 minutes)
+        caps.setCapability("maxDuration", 300);
+
+        String sauceUrl = "https://" + username + ":" + accessKey + "@ondemand.saucelabs.com:443/wd/hub";
+        WebDriver webDriver = new RemoteWebDriver(new URL(sauceUrl), caps);
+        driver.set(webDriver);
+    }
+
+    @AfterMethod
+    public void tearDown() {
+        if (driver.get() != null) {
+            driver.get().quit();
+            driver.remove();  // Clean up the ThreadLocal variable
+        }
+    }
+
+    protected WebDriver getDriver() {
+        return driver.get();
+    }
+}
+
+public class ExampleTest extends SauceTestBase {
+
+    @Test
+    public void testExample1() {
+        getDriver().get("http://www.example.com");
+        // Add your test code here
+        Assert.assertEquals(getDriver().getTitle(), "Example Domain");
+    }
+
+    @Test
+    public void testExample2() {
+        getDriver().get("http://www.example.com");
+        // Add your test code here
+        Assert.assertEquals(getDriver().getTitle(), "Example Domain");
+    }
+}
