@@ -73,3 +73,5 @@ public static Object[][] testNames() {
         }
         return data;
     }
+
+ String testName = (String) testData[0];
