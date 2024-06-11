@@ -92,8 +92,17 @@ if exist extentReport.html (
 pause
 
 
- <build>
+  <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.8.1</version> <!-- Latest version compatible with Java 17 -->
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -106,6 +115,10 @@ pause
                         -Dhttp.proxyHost=proxy.example.com -Dhttp.proxyPort=8080 
                         -Dhttps.proxyHost=proxy.example.com -Dhttps.proxyPort=8080
                     </argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
                 </configuration>
             </plugin>
         </plugins>
