@@ -71,3 +71,22 @@ public class ExtentReportListener implements ITestListener {
         }
         return filePath;
     }
+
+
+
+@echo off
+REM Navigate to the project directory
+cd /d %~dp0
+
+REM Run Maven tests
+echo Running tests, please wait...
+mvn clean test
+
+REM Open the report
+if exist extentReport.html (
+    echo Opening test report...
+    start extentReport.html
+) else (
+    echo Test report not found!
+)
+pause
