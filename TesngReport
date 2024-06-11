@@ -90,3 +90,23 @@ if exist extentReport.html (
     echo Test report not found!
 )
 pause
+
+
+ <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>3.0.0-M7</version>
+                <configuration>
+                    <suiteXmlFiles>
+                        <suiteXmlFile>testng.xml</suiteXmlFile>
+                    </suiteXmlFiles>
+                    <argLine>
+                        -Dhttp.proxyHost=proxy.example.com -Dhttp.proxyPort=8080 
+                        -Dhttps.proxyHost=proxy.example.com -Dhttps.proxyPort=8080
+                    </argLine>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
