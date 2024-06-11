@@ -55,3 +55,6 @@ public class ExtentReportListener implements ITestListener {
   <listeners>
         <listener class-name="com.example.listeners.ExtentReportListener"/>
     </listeners>
+
+  String screenshotPath = ScreenshotUtil.takeScreenshot(driver, result.getMethod().getMethodName());
+        test.addScreenCaptureFromPath(screenshotPath);
