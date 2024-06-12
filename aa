@@ -1,36 +1,26 @@
-package com.example;
-
-import com.example.utils.WebDriverManager;
-import org.openqa.selenium.WebDriver;
-import org.testng.Assert;
-import org.testng.annotations.AfterMethod;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
-public class SauceTest {
-
-    private WebDriver driver;
-
-    @BeforeMethod
-    public void setUp() {
-        driver = WebDriverManager.getDriver();
-        driver.get("https://example.com");
-    }
-
-    @Test
-    public void testMethod1() {
-        System.out.println("Executing testMethod1 in SauceTest. Thread ID: " + Thread.currentThread().getId());
-        Assert.assertTrue(driver.getTitle().contains("Example Domain"), "Title verification failed.");
-    }
-
-    @Test
-    public void testMethod2() {
-        System.out.println("Executing testMethod2 in SauceTest. Thread ID: " + Thread.currentThread().getId());
-        Assert.assertTrue(driver.getCurrentUrl().contains("example"), "URL verification failed.");
-    }
-
-    @AfterMethod
-    public void tearDown() {
-        WebDriverManager.quitDriver();
-    }
-}
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="SauceSuite" parallel="tests" thread-count="4">
+    <listeners>
+        <listener class-name="com.example.listeners.ExtentReportListener" />
+    </listeners>
+    <test name="Instance1">
+        <classes>
+            <class name="com.example.SauceTest" />
+        </classes>
+    </test>
+    <test name="Instance2">
+        <classes>
+            <class name="com.example.SauceTest" />
+        </classes>
+    </test>
+    <test name="Instance3">
+        <classes>
+            <class name="com.example.SauceTest" />
+        </classes>
+    </test>
+    <test name="Instance4">
+        <classes>
+            <class name="com.example.SauceTest" />
+        </classes>
+    </test>
+</suite>
