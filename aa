@@ -1,42 +1,36 @@
-package com.example.utils;
+package com.example;
 
+import com.example.utils.WebDriverManager;
 import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.remote.DesiredCapabilities;
-import org.openqa.selenium.remote.RemoteWebDriver;
+import org.testng.Assert;
+import org.testng.annotations.AfterMethod;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
-import java.net.MalformedURLException;
-import java.net.URL;
+public class SauceTest {
 
-public class WebDriverManager {
+    private WebDriver driver;
 
-    private static final String SAUCE_USERNAME = System.getenv("SAUCE_USERNAME");
-    private static final String SAUCE_ACCESS_KEY = System.getenv("SAUCE_ACCESS_KEY");
-    private static final String SAUCE_URL = "https://" + SAUCE_USERNAME + ":" + SAUCE_ACCESS_KEY +
-                                            "@ondemand.saucelabs.com:443/wd/hub";
-
-    private static ThreadLocal<WebDriver> driver = new ThreadLocal<>();
-
-    public static WebDriver getDriver() {
-        if (driver.get() == null) {
-            try {
-                DesiredCapabilities caps = new DesiredCapabilities();
-                caps.setCapability("platform", "Windows 10");
-                caps.setCapability("browserName", "chrome");
-                caps.setCapability("version", "latest");
-                caps.setCapability("name", Thread.currentThread().getName());
-
-                driver.set(new RemoteWebDriver(new URL(SAUCE_URL), caps));
-            } catch (MalformedURLException e) {
-                throw new RuntimeException("Invalid Sauce Labs URL", e);
-            }
-        }
-        return driver.get();
+    @BeforeMethod
+    public void setUp() {
+        driver = WebDriverManager.getDriver();
+        driver.get("https://example.com");
     }
 
-    public static void quitDriver() {
-        if (driver.get() != null) {
-            driver.get().quit();
-            driver.remove();
-        }
+    @Test
+    public void testMethod1() {
+        System.out.println("Executing testMethod1 in SauceTest. Thread ID: " + Thread.currentThread().getId());
+        Assert.assertTrue(driver.getTitle().contains("Example Domain"), "Title verification failed.");
+    }
+
+    @Test
+    public void testMethod2() {
+        System.out.println("Executing testMethod2 in SauceTest. Thread ID: " + Thread.currentThread().getId());
+        Assert.assertTrue(driver.getCurrentUrl().contains("example"), "URL verification failed.");
+    }
+
+    @AfterMethod
+    public void tearDown() {
+        WebDriverManager.quitDriver();
     }
 }
