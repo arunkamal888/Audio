@@ -1,0 +1,57 @@
+    environment {
+        IMAGE_FILE = '1.png'             // Path to your image file
+        BASE64_FILE = 'image_base64.txt' // Temporary file to store the Base64 string
+    }
+
+
+stages {
+        stage('Prepare Image') {
+            steps {
+                script {
+                    // Check if the image exists
+                    if (fileExists("${IMAGE_FILE}")) {
+                        echo "Image file ${IMAGE_FILE} found."
+
+                        // Convert the image to Base64
+                        sh "base64 ${IMAGE_FILE} > ${BASE64_FILE}"
+
+                        echo "Image ${IMAGE_FILE} converted to Base64 and saved to ${BASE64_FILE}."
+                    } else {
+                        error "Image file ${IMAGE_FILE} does not exist."
+                    }
+                }
+            }
+        }
+    }
+
+
+
+
+// Initialize the Base64 image variable
+                def base64Image = ""
+
+                try {
+                    // Read the Base64 encoded image from the file
+                    if (fileExists("${BASE64_FILE}")) {
+                        base64Image = readFile("${BASE64_FILE}").trim()
+                        echo "Base64 image data loaded."
+                    } else {
+                        echo "Base64 file ${BASE64_FILE} not found."
+                    }
+                } catch (Exception e) {
+                    echo "Error reading Base64 file: ${e.message}"
+                }
+
+                // Construct the email body
+                def emailBody = """
+                    <p>Build ${currentBuild.fullDisplayName} completed.</p>
+                    ${base64Image ? "<p>Here is the image:</p><img src='data:image/png;base64,${base64Image}' alt='Image' />" : "<p>Image not available.</p>"}
+                """
+
+                // Send the email
+                emailext(
+                    subject: "Build ${currentBuild.fullDisplayName}",
+                    body: emailBody,
+                    to: 'recipient@example.com', // Change to your recipient's email
+                    mimeType: 'text/html'
+                )
