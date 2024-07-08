@@ -1,0 +1,22 @@
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class ExtractMeetingID {
+    public static void main(String[] args) {
+        String url = "https://bhgdh/nbjhbsdshjbnjb?=/meetingID=3151515-265161621-sabgadafr";
+        String meetingID = getMeetingID(url);
+        System.out.println("Meeting ID: " + meetingID);  // Output: 3151515-265161621-sabgadafr
+    }
+
+    public static String getMeetingID(String url) {
+        // Define the regular expression pattern
+        String pattern = "meetingID=([^&]*)";
+        Pattern regex = Pattern.compile(pattern);
+        Matcher matcher = regex.matcher(url);
+
+        if (matcher.find()) {
+            return matcher.group(1);
+        }
+        return null;
+    }
+}
