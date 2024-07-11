@@ -106,3 +106,14 @@ public void sendKeys(WebElement element, String keys) {
         System.out.println("Failed to click the element after " + maxScrollAttempts + " scroll attempts.");
     }
 }
+
+
+
+ public boolean isElementDisabled(WebElement element) {
+        try {
+            return !element.isEnabled() || element.getAttribute("disabled") != null;
+        } catch (Exception e) {
+            System.out.println("Exception while checking element disabled status: " + e.getMessage());
+            return true;  // return true if an exception occurs (assumes element is disabled)
+        }
+    }
