@@ -117,3 +117,15 @@ public void sendKeys(WebElement element, String keys) {
             return true;  // return true if an exception occurs (assumes element is disabled)
         }
     }
+
+
+ public boolean isElementDisabled(WebElement element) {
+        try {
+            // Execute JavaScript to check if the "disabled" property is true
+            return (boolean) ((JavascriptExecutor) driver).executeScript(
+                    "return arguments[0].disabled;", element);
+        } catch (Exception e) {
+            System.out.println("Exception while checking element disabled status: " + e.getMessage());
+            return false;  // Return false assuming element is not disabled if there's an exception
+        }
+    }
