@@ -67,3 +67,42 @@ public void sendKeys(WebElement element, String keys) {
         System.out.println("Failed to send keys to the element after " + maxScrollAttempts + " scroll attempts.");
     }
 }
+
+
+ public void clickElement(WebElement element) {
+        int maxScrollAttempts = 10;  // maximum number of scroll attempts
+        int scrollAttempts = 0;  // initialize the scroll attempt counter
+
+        while (scrollAttempts < maxScrollAttempts) {  // loop until the maximum number of scroll attempts is reached
+            try {
+                if (element.isDisplayed()) {  // check if the element is visible
+                    try {
+                        element.click();  // attempt to click the element
+                        return;  // exit the method if the click was successful
+                    } catch (ElementClickInterceptedException e) {
+                        System.out.println("Element click intercepted, trying JavaScript click.");
+                        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);  // JavaScript click
+                        return;  // exit the method if the JavaScript click was successful
+                    }
+                } else {
+                    // scroll up or down based on the element's position relative to the viewport
+                    if (isElementAboveViewport(element)) {
+                        ((JavascriptExecutor) driver).executeScript("window.scrollBy(0,-250)");  // scroll up
+                    } else {
+                        ((JavascriptExecutor) driver).executeScript("window.scrollBy(0,250)");  // scroll down
+                    }
+                    Thread.sleep(500);  // brief pause to allow scrolling action to complete
+                }
+            } catch (NoSuchElementException | StaleElementReferenceException e) {
+                // handle exceptions if the element is not found or is stale
+                System.out.println("Attempt " + (scrollAttempts + 1) + ": Element not found: " + e.getMessage());
+            } catch (Exception e) {
+                // handle any other exceptions that occur
+                System.out.println("Attempt " + (scrollAttempts + 1) + ": Error while clicking element: " + e.getMessage());
+            }
+            scrollAttempts++;  // increment the scroll attempt counter
+        }
+
+        System.out.println("Failed to click the element after " + maxScrollAttempts + " scroll attempts.");
+    }
+}
