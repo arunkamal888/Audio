@@ -1,133 +1,123 @@
- private boolean isElementAboveViewport(WebElement element) {
-        int elementPosition = element.getLocation().getY();
-        int viewportPosition = ((Long) ((JavascriptExecutor) driver).executeScript("return window.pageYOffset;")).intValue();
-        return elementPosition < viewportPosition;
-    }
-
-    // Common method to get text from a WebElement
-    public String getText(WebElement element) {
-        int maxScrollAttempts = 10;  // maximum number of scroll attempts
-        int scrollAttempts = 0;
-
-        while (scrollAttempts < maxScrollAttempts) {
-            try {
-                if (element.isDisplayed()) {
-                    return element.getText();
-                } else {
-                    if (isElementAboveViewport(element)) {
-                        ((JavascriptExecutor) driver).executeScript("window.scrollBy(0,-250)");
-                    } else {
-                        ((JavascriptExecutor) driver).executeScript("window.scrollBy(0,250)");
-                    }
-                    Thread.sleep(500);  // brief pause to allow scrolling action to complete
-                }
-            } catch (NoSuchElementException | StaleElementReferenceException e) {
-                System.out.println("Attempt " + (scrollAttempts + 1) + ": Element not found: " + e.getMessage());
-            } catch (Exception e) {
-                System.out.println("Attempt " + (scrollAttempts + 1) + ": Error while getting text from element: " + e.getMessage());
-            }
-            scrollAttempts++;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jenkins Build Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0; /* Light grey background color for the body */
         }
-
-        System.out.println("Failed to retrieve text from the element after " + maxScrollAttempts + " scroll attempts.");
-        return null;
-    }
-}
-
-
-
-public void sendKeys(WebElement element, String keys) {
-        int maxScrollAttempts = 10;  // maximum number of scroll attempts
-        int scrollAttempts = 0;  // initialize the scroll attempt counter
-
-        while (scrollAttempts < maxScrollAttempts) {  // loop until the maximum number of scroll attempts is reached
-            try {
-                if (element.isDisplayed()) {  // check if the element is visible
-                    element.sendKeys(keys);  // send keys if the element is visible
-                    return;  // exit the method if keys were sent successfully
-                } else {
-                    // scroll up or down based on the element's position relative to the viewport
-                    if (isElementAboveViewport(element)) {
-                        ((JavascriptExecutor) driver).executeScript("window.scrollBy(0,-250)");  // scroll up
-                    } else {
-                        ((JavascriptExecutor) driver).executeScript("window.scrollBy(0,250)");  // scroll down
-                    }
-                    Thread.sleep(500);  // brief pause to allow scrolling action to complete
-                }
-            } catch (NoSuchElementException | StaleElementReferenceException e) {
-                // handle exceptions if the element is not found or is stale
-                System.out.println("Attempt " + (scrollAttempts + 1) + ": Element not found: " + e.getMessage());
-            } catch (Exception e) {
-                // handle any other exceptions that occur
-                System.out.println("Attempt " + (scrollAttempts + 1) + ": Error while sending keys to element: " + e.getMessage());
-            }
-            scrollAttempts++;  // increment the scroll attempt counter
+        .container {
+            width: 90%;
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+            background-color: #fff; /* White background color for the container */
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
         }
-
-        System.out.println("Failed to send keys to the element after " + maxScrollAttempts + " scroll attempts.");
-    }
-}
-
-
- public void clickElement(WebElement element) {
-        int maxScrollAttempts = 10;  // maximum number of scroll attempts
-        int scrollAttempts = 0;  // initialize the scroll attempt counter
-
-        while (scrollAttempts < maxScrollAttempts) {  // loop until the maximum number of scroll attempts is reached
-            try {
-                if (element.isDisplayed()) {  // check if the element is visible
-                    try {
-                        element.click();  // attempt to click the element
-                        return;  // exit the method if the click was successful
-                    } catch (ElementClickInterceptedException e) {
-                        System.out.println("Element click intercepted, trying JavaScript click.");
-                        ((JavascriptExecutor) driver).executeScript("arguments[0].click();", element);  // JavaScript click
-                        return;  // exit the method if the JavaScript click was successful
-                    }
-                } else {
-                    // scroll up or down based on the element's position relative to the viewport
-                    if (isElementAboveViewport(element)) {
-                        ((JavascriptExecutor) driver).executeScript("window.scrollBy(0,-250)");  // scroll up
-                    } else {
-                        ((JavascriptExecutor) driver).executeScript("window.scrollBy(0,250)");  // scroll down
-                    }
-                    Thread.sleep(500);  // brief pause to allow scrolling action to complete
-                }
-            } catch (NoSuchElementException | StaleElementReferenceException e) {
-                // handle exceptions if the element is not found or is stale
-                System.out.println("Attempt " + (scrollAttempts + 1) + ": Element not found: " + e.getMessage());
-            } catch (Exception e) {
-                // handle any other exceptions that occur
-                System.out.println("Attempt " + (scrollAttempts + 1) + ": Error while clicking element: " + e.getMessage());
-            }
-            scrollAttempts++;  // increment the scroll attempt counter
+        .header {
+            background-color: #1976D2; /* Dark blue background color for the header */
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+            border-radius: 8px 8px 0 0;
         }
-
-        System.out.println("Failed to click the element after " + maxScrollAttempts + " scroll attempts.");
-    }
-}
-
-
-
- public boolean isElementDisabled(WebElement element) {
-        try {
-            return !element.isEnabled() || element.getAttribute("disabled") != null;
-        } catch (Exception e) {
-            System.out.println("Exception while checking element disabled status: " + e.getMessage());
-            return true;  // return true if an exception occurs (assumes element is disabled)
+        .content {
+            padding: 20px;
+            background-color: #333; /* Dark background color for the content */
+            color: #fff; /* White text color */
+            border-radius: 0 0 8px 8px;
         }
-    }
-
-
- public boolean isElementDisabled(WebElement element) {
-        try {
-            // Execute JavaScript to check if the "disabled" property is true
-            return (boolean) ((JavascriptExecutor) driver).executeScript(
-                    "return arguments[0].disabled;", element);
-        } catch (Exception e) {
-            System.out.println("Exception while checking element disabled status: " + e.getMessage());
-            return false;  // Return false assuming element is not disabled if there's an exception
+        .content h1 {
+            color: #1976D2; /* Dark blue text color */
         }
-    }
-
-     ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", element);
+        .build-details {
+            margin: 20px 0;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .build-details th, .build-details td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #666; /* Darker border color */
+        }
+        .build-details th {
+            background-color: #555; /* Darker background color for table headers */
+            color: #fff;
+        }
+        .footer {
+            background-color: #1976D2; /* Dark blue background color for the footer */
+            color: #fff;
+            text-align: center;
+            padding: 20px;
+            border-radius: 0 0 8px 8px;
+        }
+        .footer a {
+            color: #fff;
+            text-decoration: none;
+        }
+        a {
+            color: #1976D2; /* Dark blue link color */
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Jenkins Build Notification</h1>
+        </div>
+        <div class="content">
+            <h1>Build Status: Success</h1>
+            <p>Project: My Project</p>
+            <p>Build Number: #123</p>
+            <p>Build URL: <a href="https://jenkins.example.com/build/123">https://jenkins.example.com/build/123</a></p>
+            <h2>Changes:</h2>
+            <ul>
+                <li>Fixed a critical bug by John Doe</li>
+                <li>Updated feature XYZ by Jane Smith</li>
+            </ul>
+            <h2>Build Details:</h2>
+            <table class="build-details">
+                <tr>
+                    <th>Parameter</th>
+                    <th>Value</th>
+                </tr>
+                <tr>
+                    <td>Project</td>
+                    <td>My Project</td>
+                </tr>
+                <tr>
+                    <td>Build Number</td>
+                    <td>#123</td>
+                </tr>
+                <tr>
+                    <td>Build Status</td>
+                    <td>Success</td>
+                </tr>
+                <tr>
+                    <td>Build URL</td>
+                    <td><a href="https://jenkins.example.com/build/123">https://jenkins.example.com/build/123</a></td>
+                </tr>
+                <tr>
+                    <td>Duration</td>
+                    <td>00:05:23</td>
+                </tr>
+                <tr>
+                    <td>Triggered By</td>
+                    <td>John Doe</td>
+                </tr>
+            </table>
+        </div>
+        <div class="footer">
+            <p>Generated by <a href="https://jenkins.example.com">Jenkins</a></p>
+        </div>
+    </div>
+</body>
+</html>
