@@ -129,3 +129,5 @@ public void sendKeys(WebElement element, String keys) {
             return false;  // Return false assuming element is not disabled if there's an exception
         }
     }
+
+     ((JavascriptExecutor) driver).executeScript("arguments[0].scrollIntoView(true);", element);
