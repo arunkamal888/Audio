@@ -1,25 +1,18 @@
-  public static AppiumDriver<MobileElement> getDriver() {
-        if (driver == null) {
-            DesiredCapabilities capabilities = new DesiredCapabilities();
-            capabilities.setCapability("platformName", "Android");
-            capabilities.setCapability("platformVersion", "11.0");
-            capabilities.setCapability("deviceName", "emulator-5554");
-            capabilities.setCapability("appPackage", "com.example");
-            capabilities.setCapability("appActivity", "com.example.MainActivity");
-            capabilities.setCapability("automationName", "UiAutomator2");
-
-            try {
-                driver = new AndroidDriver<>(new URL("http://127.0.0.1:4723/wd/hub"), capabilities);
-            } catch (MalformedURLException e) {
-                e.printStackTrace();
-            }
-        }
-        return driver;
-    }
-
-    public static void closeDriver() {
-        if (driver != null) {
-            driver.quit();
-            driver = null;
-        }
-    }
+<dependency>
+    <groupId>io.rest-assured</groupId>
+    <artifactId>json-path</artifactId>
+    <version>4.3.3</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>io.rest-assured</groupId>
+    <artifactId>xml-path</artifactId>
+    <version>4.3.3</version>
+    <scope>test</scope>
+</dependency>
+<dependency>
+    <groupId>io.rest-assured</groupId>
+    <artifactId>json-schema-validator</artifactId>
+    <version>4.3.3</version>
+    <scope>test</scope>
+</dependency>
