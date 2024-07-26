@@ -1,57 +1,25 @@
-<html>
-<head>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f3f4f6;
-            margin: 0;
-            padding: 20px;
+  public static AppiumDriver<MobileElement> getDriver() {
+        if (driver == null) {
+            DesiredCapabilities capabilities = new DesiredCapabilities();
+            capabilities.setCapability("platformName", "Android");
+            capabilities.setCapability("platformVersion", "11.0");
+            capabilities.setCapability("deviceName", "emulator-5554");
+            capabilities.setCapability("appPackage", "com.example");
+            capabilities.setCapability("appActivity", "com.example.MainActivity");
+            capabilities.setCapability("automationName", "UiAutomator2");
+
+            try {
+                driver = new AndroidDriver<>(new URL("http://127.0.0.1:4723/wd/hub"), capabilities);
+            } catch (MalformedURLException e) {
+                e.printStackTrace();
+            }
         }
-        table {
-            width: 50%;
-            background-color: #f9f9f9;
-            border: 2px solid #1976D2; /* Blue border */
-            border-collapse: collapse;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
+        return driver;
+    }
+
+    public static void closeDriver() {
+        if (driver != null) {
+            driver.quit();
+            driver = null;
         }
-        table th, table td {
-            padding: 10px;
-            text-align: left;
-        }
-        table th {
-            background-color: #1976D2; /* Blue background for header */
-            color: white;
-            text-align: center;
-        }
-        table td {
-            border-bottom: 1px solid #ddd;
-        }
-        table tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        table tr:hover {
-            background-color: #ddd;
-        }
-    </style>
-</head>
-<body>
-    <table>
-        <tr>
-            <th colspan="2">Automation Report</th>
-        </tr>
-        <tr>
-            <td><b>Project Name:</b></td>
-            <td>Project A</td>
-        </tr>
-        <tr>
-            <td><b>Build Number:</b></td>
-            <td>2</td>
-        </tr>
-        <tr>
-            <td><b>Build Status:</b></td>
-            <td>Success</td>
-        </tr>
-    </table>
-</body>
-</html>
+    }
