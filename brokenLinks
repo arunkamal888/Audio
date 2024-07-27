@@ -1,0 +1,61 @@
+ List<WebElement> links = driver.findElements(By.tagName("a"));
+        List<String> brokenLinks = new ArrayList<>();
+
+        ExecutorService executorService = Executors.newFixedThreadPool(10);
+        List<Future<String>> futures = new ArrayList<>();
+
+        for (WebElement link : links) {
+            String url = link.getAttribute("href");
+            if (url != null) {
+                futures.add(executorService.submit(new LinkChecker(url)));
+            }
+        }
+
+        for (Future<String> future : futures) {
+            try {
+                String brokenLink = future.get();
+                if (brokenLink != null) {
+                    brokenLinks.add(brokenLink);
+                }
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        }
+
+        executorService.shutdown();
+        MoreExecutors.shutdownAndAwaitTermination(executorService, java.time.Duration.ofMinutes(1));
+
+        driver.quit();
+
+        if (!brokenLinks.isEmpty()) {
+            System.out.println("Broken links found:");
+            for (String link : brokenLinks) {
+                System.out.println(link);
+            }
+        } else {
+            System.out.println("No broken links found.");
+        }
+    }
+
+    static class LinkChecker implements Callable<String> {
+        private final String url;
+
+        LinkChecker(String url) {
+            this.url = url;
+        }
+
+        @Override
+        public String call() {
+            try (CloseableHttpClient client = HttpClients.createDefault()) {
+                HttpHead request = new HttpHead(url);
+                HttpResponse response = client.execute(request);
+                int statusCode = response.getStatusLine().getStatusCode();
+                if (statusCode >= 400) {
+                    return url;
+                }
+            } catch (IOException e) {
+                return url;
+            }
+            return null;
+        }
+    }
