@@ -74,3 +74,23 @@ public class BrokenLinksChecker {
         }
     }
 }
+
+
+
+
+
+List<WebElement> links = driver.findElements(By.tagName("a"));
+        BrokenLinksChecker checker = new BrokenLinksChecker();
+        List<String> brokenLinks = checker.checkBrokenLinks(links);
+
+        driver.quit();
+
+        if (!brokenLinks.isEmpty()) {
+            System.out.println("Broken links found:");
+            for (String link : brokenLinks) {
+                System.out.println(link);
+            }
+        } else {
+            System.out.println("No broken links found.");
+        }
+    }
