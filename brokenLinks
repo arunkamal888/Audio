@@ -2,10 +2,7 @@ import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
-import org.openqa.selenium.By;
-import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
-import org.openqa.selenium.chrome.ChromeDriver;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -19,29 +16,7 @@ import java.util.concurrent.TimeUnit;
 
 public class BrokenLinksChecker {
 
-    public static void main(String[] args) {
-        // Set the path to your ChromeDriver executable
-        System.setProperty("webdriver.chrome.driver", "path/to/chromedriver");
-
-        WebDriver driver = new ChromeDriver();
-        driver.get("http://example.com");  // Replace with the target URL
-
-        List<WebElement> links = driver.findElements(By.tagName("a"));
-        List<String> brokenLinks = checkBrokenLinks(links);
-
-        driver.quit();
-
-        if (!brokenLinks.isEmpty()) {
-            System.out.println("Broken links found:");
-            for (String link : brokenLinks) {
-                System.out.println(link);
-            }
-        } else {
-            System.out.println("No broken links found.");
-        }
-    }
-
-    private static List<String> checkBrokenLinks(List<WebElement> links) {
+    public List<String> checkBrokenLinks(List<WebElement> links) {
         List<String> brokenLinks = new ArrayList<>();
         ExecutorService executorService = Executors.newFixedThreadPool(10);
         List<Future<String>> futures = new ArrayList<>();
