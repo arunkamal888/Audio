@@ -1,4 +1,32 @@
- List<WebElement> links = driver.findElements(By.tagName("a"));
+import com.google.common.util.concurrent.MoreExecutors;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.methods.HttpHead;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
+public class EfficientBrokenLinksChecker {
+
+    public static void main(String[] args) {
+        // Set the path to your ChromeDriver executable
+        System.setProperty("webdriver.chrome.driver", "path/to/chromedriver");
+
+        WebDriver driver = new ChromeDriver();
+        driver.get("http://example.com");  // Replace with the target URL
+
+        List<WebElement> links = driver.findElements(By.tagName("a"));
         List<String> brokenLinks = new ArrayList<>();
 
         ExecutorService executorService = Executors.newFixedThreadPool(10);
@@ -59,3 +87,4 @@
             return null;
         }
     }
+}
