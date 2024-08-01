@@ -1,8 +1,22 @@
- """
-                    <html>
-                    <body>
-                        <p>Please find the embedded PNG file below:</p>
-                        <img src="data:image/png;base64,${encodedImage}" alt="Embedded PNG">
-                    </body>
-                    </html>
-                """
+
+            // JavaScript code to get all image URLs from shadow DOMs
+            String script = "var shadowHosts = document.querySelectorAll('*');" +
+                            "var imgSrcs = [];" +
+                            "shadowHosts.forEach(function(host) {" +
+                            "  if (host.shadowRoot) {" +
+                            "    var images = host.shadowRoot.querySelectorAll('img');" +
+                            "    images.forEach(function(img) {" +
+                            "      imgSrcs.push(img.src);" +
+                            "    });" +
+                            "  }" +
+                            "});" +
+                            "return imgSrcs;";
+
+            // Execute the JavaScript and retrieve the image URLs
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            List<String> imgSrcs = (List<String>) js.executeScript(script);
+
+            // Process the results
+            for (String src : imgSrcs) {
+                System.out.println("Image src in shadow DOM: " + src);
+            }
