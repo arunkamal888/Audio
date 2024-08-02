@@ -1,27 +1,11 @@
- DesiredCapabilities caps = new DesiredCapabilities();
-        caps.setCapability(CapabilityType.PLATFORM_NAME, "iOS");
-        caps.setCapability(CapabilityType.BROWSER_NAME, "safari");
-        caps.setCapability("deviceName", "iPhone 12");
-        caps.setCapability("platformVersion", "15.0");
-        caps.setCapability("automationName", "XCUITest");
+MutableCapabilities capabilities = new MutableCapabilities();
+capabilities.setCapability("browserName", "safari");
+capabilities.setCapability("platformName", "ios");
+capabilities.setCapability("appium:platformVersion", "latest");
+capabilities.setCapability("appium:deviceName", "iPhone Instant Simulator");
+capabilities.setCapability("appium:automationName", "xcuitest");
 
-        // Safari options to allow video and audio pop-ups
-        HashMap<String, Object> safariOptions = new HashMap<>();
-        safariOptions.put("nativeWebTap", true); // Enable native web taps
-        safariOptions.put("mediaPlaybackRequiresUserAction", false); // Allow auto-play of media
-        caps.setCapability("safari.options", safariOptions);
+MutableCapabilities sauceOptions = new MutableCapabilities();
+sauceOptions.setCapability("sauce:options", sauceOptions);
 
-        // Set Sauce Labs credentials and test details
-        caps.setCapability("sauce:options", new HashMap<String, Object>() {{
-            put("username", "YOUR_SAUCE_USERNAME");
-            put("accessKey", "YOUR_SAUCE_ACCESS_KEY");
-            put("name", "iPhone Safari Test - Allow Video/Audio");
-            put("build", "Build-1");
-        }});
-
-        // Connect to Sauce Labs
-        URL url = new URL("https://YOUR_SAUCE_USERNAME:YOUR_SAUCE_ACCESS_KEY@ondemand.saucelabs.com:443/wd/hub");
-        WebDriver driver = new RemoteWebDriver(url, caps);
-
-        // Your test code here
-        driver.get("https://www.example.com");
+capabilities.setCapability("sauce:options", sauceOptions);
