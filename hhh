@@ -1,11 +1,23 @@
-MutableCapabilities capabilities = new MutableCapabilities();
-capabilities.setCapability("browserName", "safari");
-capabilities.setCapability("platformName", "ios");
-capabilities.setCapability("appium:platformVersion", "latest");
-capabilities.setCapability("appium:deviceName", "iPhone Instant Simulator");
-capabilities.setCapability("appium:automationName", "xcuitest");
+String username = System.getenv("SAUCE_USERNAME");
+        String accessKey = System.getenv("SAUCE_ACCESS_KEY");
+        String sauceURL = "https://" + username + ":" + accessKey + "@ondemand.us-west-1.saucelabs.com/wd/hub";
 
-MutableCapabilities sauceOptions = new MutableCapabilities();
-sauceOptions.setCapability("sauce:options", sauceOptions);
+        // Define browser options and desired capabilities for iPhone Safari
+        SafariOptions safariOptions = new SafariOptions();
+        safariOptions.setCapability("platformName", "iOS");
+        safariOptions.setCapability("platformVersion", "16.0"); // Use the desired iOS version
+        safariOptions.setCapability("deviceName", "iPhone 14 Pro"); // Use the desired iPhone model
 
-capabilities.setCapability("sauce:options", sauceOptions);
+        // Sauce Labs specific options
+        MutableCapabilities sauceOptions = new MutableCapabilities();
+        sauceOptions.setCapability("name", "iPhone Safari Test");
+        sauceOptions.setCapability("build", "Sample Build");
+        sauceOptions.setCapability("appiumVersion", "2.0.0"); // Specify the Appium version
+
+        // Merging both sets of capabilities
+        MutableCapabilities capabilities = new MutableCapabilities();
+        capabilities.merge(safariOptions);
+        capabilities.merge(sauceOptions);
+
+        // Initialize the RemoteWebDriver
+        WebDriver driver = new RemoteWebDriver(new URL(sauceURL), capabilities);
