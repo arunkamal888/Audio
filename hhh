@@ -1,13 +1,23 @@
-SafariOptions safariOptions = new SafariOptions();
-safariOptions.setCapability("platformName", "iOS");
-safariOptions.setCapability("platformVersion", "16.0"); // Check for the exact supported version
-safariOptions.setCapability("deviceName", "iPhone 14 Pro"); // Verify the exact device name
+ String username = System.getenv("SAUCE_USERNAME");
+        String accessKey = System.getenv("SAUCE_ACCESS_KEY");
+        String sauceURL = "https://" + username + ":" + accessKey + "@ondemand.us-west-1.saucelabs.com/wd/hub";
 
-MutableCapabilities sauceOptions = new MutableCapabilities();
-sauceOptions.setCapability("name", "iPhone Safari Test");
-sauceOptions.setCapability("build", "Sample Build");
-sauceOptions.setCapability("appiumVersion", "2.0.0"); // Use the supported Appium version
+        // Define Safari options for iOS
+        SafariOptions safariOptions = new SafariOptions();
+        safariOptions.setCapability("platformName", "iOS");
+        safariOptions.setCapability("platformVersion", "16.0"); // Update with the desired iOS version
+        safariOptions.setCapability("deviceName", "iPhone 14 Pro"); // Update with the desired device name
 
-MutableCapabilities capabilities = new MutableCapabilities();
-capabilities.setCapability(SafariOptions.CAPABILITY, safariOptions);
-capabilities.setCapability("sauce:options", sauceOptions);
+        // Define Sauce Labs options
+        MutableCapabilities sauceOptions = new MutableCapabilities();
+        sauceOptions.setCapability("name", "iPhone Safari Test");
+        sauceOptions.setCapability("build", "Sample Build");
+        sauceOptions.setCapability("appiumVersion", "2.0.0"); // Ensure Appium version is supported
+
+        // Merge both sets of capabilities
+        MutableCapabilities capabilities = new MutableCapabilities();
+        capabilities.setCapability(SafariOptions.CAPABILITY, safariOptions);
+        capabilities.setCapability("sauce:options", sauceOptions);
+
+        // Initialize RemoteWebDriver with Sauce Labs URL and capabilities
+        WebDriver driver = new RemoteWebDriver(new URL(sauceURL), capabilities);
