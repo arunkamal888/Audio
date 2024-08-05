@@ -1,23 +1,13 @@
-String username = System.getenv("SAUCE_USERNAME");
-        String accessKey = System.getenv("SAUCE_ACCESS_KEY");
-        String sauceURL = "https://" + username + ":" + accessKey + "@ondemand.us-west-1.saucelabs.com/wd/hub";
+SafariOptions safariOptions = new SafariOptions();
+safariOptions.setCapability("platformName", "iOS");
+safariOptions.setCapability("platformVersion", "16.0"); // Check for the exact supported version
+safariOptions.setCapability("deviceName", "iPhone 14 Pro"); // Verify the exact device name
 
-        // Define browser options and desired capabilities for iPhone Safari
-        SafariOptions safariOptions = new SafariOptions();
-        safariOptions.setCapability("platformName", "iOS");
-        safariOptions.setCapability("platformVersion", "16.0"); // Use the desired iOS version
-        safariOptions.setCapability("deviceName", "iPhone 14 Pro"); // Use the desired iPhone model
+MutableCapabilities sauceOptions = new MutableCapabilities();
+sauceOptions.setCapability("name", "iPhone Safari Test");
+sauceOptions.setCapability("build", "Sample Build");
+sauceOptions.setCapability("appiumVersion", "2.0.0"); // Use the supported Appium version
 
-        // Sauce Labs specific options
-        MutableCapabilities sauceOptions = new MutableCapabilities();
-        sauceOptions.setCapability("name", "iPhone Safari Test");
-        sauceOptions.setCapability("build", "Sample Build");
-        sauceOptions.setCapability("appiumVersion", "2.0.0"); // Specify the Appium version
-
-        // Merging both sets of capabilities
-        MutableCapabilities capabilities = new MutableCapabilities();
-        capabilities.merge(safariOptions);
-        capabilities.merge(sauceOptions);
-
-        // Initialize the RemoteWebDriver
-        WebDriver driver = new RemoteWebDriver(new URL(sauceURL), capabilities);
+MutableCapabilities capabilities = new MutableCapabilities();
+capabilities.setCapability(SafariOptions.CAPABILITY, safariOptions);
+capabilities.setCapability("sauce:options", sauceOptions);
