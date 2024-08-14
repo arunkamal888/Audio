@@ -1,34 +1,47 @@
-  RestAssured.baseURI = "https://saucelabs.com/rest/v1/";
-        String videoUrl = "jobs/" + username + "/jobs/" + sessionId + "/assets/video.mp4";
+import java.io.BufferedInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import org.json.JSONObject;
 
-        // Encode credentials
-        String auth = username + ":" + accessKey;
-        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+public class SauceLabsVideoDownloader {
 
-        // Perform GET request
-        Response response = RestAssured
-            .given()
-            .header("Authorization", "Basic " + encodedAuth)
-            .when()
-            .get(videoUrl);
+    private static final String SAUCE_LABS_API_URL = "https://saucelabs.com/rest/v1/%s/jobs/%s/video.mp4";
+    private static final String USERNAME = "your-sauce-labs-username";
+    private static final String ACCESS_KEY = "your-sauce-labs-access-key";
 
-        // Check if the request was successful
-        if (response.getStatusCode() == 200) {
-            try (InputStream inputStream = response.asInputStream();
-                 OutputStream outputStream = new FileOutputStream("session_video.mp4")) {
+    public static void main(String[] args) {
+        String jobId = "your-job-id"; // Replace with your job ID
+        String username = USERNAME;
+        String accessKey = ACCESS_KEY;
 
-                byte[] buffer = new byte[1024];
-                int bytesRead;
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, bytesRead);
-                }
+        try {
+            String videoUrl = String.format(SAUCE_LABS_API_URL, username, jobId);
+            URL url = new URL(videoUrl);
 
-                System.out.println("Video downloaded successfully!");
+            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+            String auth = username + ":" + accessKey;
+            String encodedAuth = new String(java.util.Base64.getEncoder().encode(auth.getBytes()));
+            connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
 
-            } catch (Exception e) {
-                e.printStackTrace();
+            BufferedInputStream in = new BufferedInputStream(connection.getInputStream());
+            FileOutputStream fout = new FileOutputStream("test-video.mp4");
+
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+            while ((bytesRead = in.read(buffer)) != -1) {
+                fout.write(buffer, 0, bytesRead);
             }
-        } else {
-            System.out.println("Failed to download video. HTTP code: " + response.getStatusCode());
+
+            in.close();
+            fout.close();
+
+            System.out.println("Video downloaded successfully!");
+
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
+}
