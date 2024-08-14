@@ -1,14 +1,20 @@
 import javax.sound.sampled.*;
 import java.io.File;
 import java.io.IOException;
+import javazoom.spi.mpeg.sampled.file.MpegAudioFileReader;
+import javazoom.spi.mpeg.sampled.file.MpegAudioFileReader.MpegAudioFile;
+import javazoom.spi.mpeg.sampled.file.MpegAudioFileReader.MpegAudioFileReader;
+import javazoom.spi.mpeg.sampled.file.MpegAudioFileReader.MpegAudioFileReaderException;
 
-public class AudioActivityChecker {
+public class MP3AudioActivityChecker {
     private static final double AUDIO_THRESHOLD = 0.01; // Adjust based on expected signal levels
 
     public static void main(String[] args) {
         try {
-            File audioFile = new File("audiofile.wav");
-            AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioFile);
+            File mp3File = new File("audiofile.mp3");
+
+            // Read MP3 file
+            AudioInputStream audioStream = getAudioInputStream(mp3File);
             AudioFormat format = audioStream.getFormat();
             byte[] audioData = audioStream.readAllBytes();
             
@@ -27,6 +33,12 @@ public class AudioActivityChecker {
         }
     }
     
+    private static AudioInputStream getAudioInputStream(File mp3File) throws UnsupportedAudioFileException, IOException, MpegAudioFileReaderException {
+        MpegAudioFileReader mp3Reader = new MpegAudioFileReader();
+        MpegAudioFile mp3AudioFile = mp3Reader.getAudioInputStream(mp3File);
+        return mp3AudioFile.getAudioInputStream();
+    }
+
     private static double[] extractSamples(byte[] audioData, AudioFormat format) {
         int bytesPerSample = format.getFrameSize() / format.getChannels();
         int numSamples = audioData.length / bytesPerSample;
