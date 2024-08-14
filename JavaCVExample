@@ -1,35 +1,54 @@
-import org.bytedeco.javacv.FFmpegFrameGrabber;
-import org.bytedeco.javacv.FFmpegFrameRecorder;
+import javax.sound.sampled.*;
+import java.io.File;
+import java.io.IOException;
 
-public class VideoToAudioExtractor {
+public class AudioActivityChecker {
+    private static final double AUDIO_THRESHOLD = 0.01; // Adjust based on expected signal levels
 
     public static void main(String[] args) {
-        String inputVideoPath = "path/to/your/video.mp4";
-        String outputAudioPath = "path/to/your/audio.wav";
-
         try {
-            FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(inputVideoPath);
-            grabber.start();
-
-            FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputAudioPath, grabber.getAudioChannels());
-            recorder.setAudioCodec(org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_PCM_S16LE);
-            recorder.setSampleRate(grabber.getSampleRate());
-            recorder.start();
-
-            org.bytedeco.javacv.Frame frame;
-            while ((frame = grabber.grabFrame()) != null) {
-                if (frame.samples != null) {
-                    recorder.record(frame);
-                }
+            File audioFile = new File("audiofile.wav");
+            AudioInputStream audioStream = AudioSystem.getAudioInputStream(audioFile);
+            AudioFormat format = audioStream.getFormat();
+            byte[] audioData = audioStream.readAllBytes();
+            
+            double[] samples = extractSamples(audioData, format);
+            boolean isAudioPresent = detectAudio(samples);
+            
+            if (isAudioPresent) {
+                System.out.println("Audio is present.");
+            } else {
+                System.out.println("No audio detected.");
             }
-
-            grabber.stop();
-            grabber.release();
-            recorder.stop();
-            recorder.release();
-
+            
+            audioStream.close();
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+    
+    private static double[] extractSamples(byte[] audioData, AudioFormat format) {
+        int bytesPerSample = format.getFrameSize() / format.getChannels();
+        int numSamples = audioData.length / bytesPerSample;
+        double[] samples = new double[numSamples];
+        
+        for (int i = 0; i < numSamples; i++) {
+            int sampleValue = 0;
+            for (int j = 0; j < bytesPerSample; j++) {
+                sampleValue |= (audioData[i * bytesPerSample + j] & 0xFF) << (j * 8);
+            }
+            samples[i] = sampleValue / (double) Math.pow(2, 8 * bytesPerSample - 1);
+        }
+        
+        return samples;
+    }
+
+    private static boolean detectAudio(double[] samples) {
+        for (double sample : samples) {
+            if (Math.abs(sample) > AUDIO_THRESHOLD) {
+                return true; // Audio detected
+            }
+        }
+        return false; // No significant audio detected
     }
 }
