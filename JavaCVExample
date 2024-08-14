@@ -7,6 +7,7 @@ import org.bytedeco.ffmpeg.avformat.AVStream;
 import org.bytedeco.ffmpeg.global.avcodec;
 import org.bytedeco.ffmpeg.global.avformat;
 import org.bytedeco.ffmpeg.global.avutil;
+import org.bytedeco.ffmpeg.presets.ffmpeg;
 
 import java.io.File;
 import java.io.FileOutputStream;
