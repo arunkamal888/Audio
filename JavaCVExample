@@ -1,0 +1,82 @@
+import org.bytedeco.ffmpeg.global.avcodec;
+import org.bytedeco.ffmpeg.global.avformat;
+import org.bytedeco.ffmpeg.global.avutil;
+import org.bytedeco.ffmpeg.avformat.AVFormatContext;
+import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
+import org.bytedeco.ffmpeg.avcodec.AVPacket;
+import org.bytedeco.ffmpeg.avcodec.AVFrame;
+import org.bytedeco.ffmpeg.avcodec.AVStream;
+import org.bytedeco.ffmpeg.avutil.AVFrame;
+import org.bytedeco.ffmpeg.avutil.AVSampleFormat;
+import org.bytedeco.ffmpeg.avutil.AVChannelLayout;
+import org.bytedeco.ffmpeg.presets.ffmpeg;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+
+public class JavaCVExample {
+    public static void main(String[] args) {
+        String videoFilePath = "input.mp4";
+        String audioFilePath = "output.mp3";
+
+        // Initialize FFmpeg libraries
+        avformat.av_register_all();
+        avcodec.avcodec_register_all();
+        avutil.av_log_set_level(avutil.AV_LOG_DEBUG);
+
+        AVFormatContext formatContext = avformat.avformat_alloc_context();
+        if (avformat.avformat_open_input(formatContext, videoFilePath, null, null) < 0) {
+            System.err.println("Could not open input file.");
+            return;
+        }
+
+        if (avformat.avformat_find_stream_info(formatContext, (AVDictionary) null) < 0) {
+            System.err.println("Could not find stream information.");
+            return;
+        }
+
+        AVCodecContext codecContext = null;
+        for (int i = 0; i < formatContext.nb_streams(); i++) {
+            AVStream stream = formatContext.streams(i);
+            AVCodecContext codec = stream.codec();
+            if (codec.codec_type() == avcodec.AVMEDIA_TYPE_AUDIO) {
+                codecContext = codec;
+                break;
+            }
+        }
+
+        if (codecContext == null) {
+            System.err.println("No audio stream found.");
+            return;
+        }
+
+        if (avcodec.avcodec_open2(codecContext, avcodec.avcodec_find_decoder(codecContext.codec_id()), (AVDictionary) null) < 0) {
+            System.err.println("Could not open codec.");
+            return;
+        }
+
+        AVPacket packet = new AVPacket();
+        AVFrame frame = avutil.av_frame_alloc();
+        try (FileOutputStream outputStream = new FileOutputStream(audioFilePath)) {
+            while (avformat.av_read_frame(formatContext, packet) >= 0) {
+                if (packet.stream_index() == codecContext.stream_index()) {
+                    avcodec.avcodec_send_packet(codecContext, packet);
+                    while (avcodec.avcodec_receive_frame(codecContext, frame) == 0) {
+                        // Write audio data to file
+                        byte[] audioData = frame.data(0).getStringBytes();
+                        outputStream.write(audioData);
+                    }
+                }
+                avcodec.av_packet_unref(packet);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        } finally {
+            avutil.av_frame_free(frame);
+            avformat.avformat_close_input(formatContext);
+        }
+    }
+}
