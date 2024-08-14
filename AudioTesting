@@ -1,0 +1,26 @@
+  public static void main(String[] args) throws Exception {
+        String username = "YOUR_SAUCE_USERNAME";
+        String accessKey = "YOUR_SAUCE_ACCESS_KEY";
+        String jobId = "YOUR_JOB_ID";
+
+        String auth = username + ":" + accessKey;
+        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
+
+        URL url = new URL("https://api.us-west-1.saucelabs.com/v1/rdc/jobs/" + jobId + "/assets/audio");
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
+
+        InputStream in = connection.getInputStream();
+        FileOutputStream out = new FileOutputStream(new File("audio.mp3"));
+
+        byte[] buffer = new byte[1024];
+        int bytesRead;
+        while ((bytesRead = in.read(buffer)) != -1) {
+            out.write(buffer, 0, bytesRead);
+        }
+
+        out.close();
+        in.close();
+
+        System.out.println("Audio file downloaded successfully!");
+    }
