@@ -1,84 +1,35 @@
-import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
-import org.bytedeco.ffmpeg.avcodec.AVCodec;
-import org.bytedeco.ffmpeg.avcodec.AVPacket;
-import org.bytedeco.ffmpeg.avformat.AVFormatContext;
-import org.bytedeco.ffmpeg.avformat.AVStream;
-import org.bytedeco.ffmpeg.avutil.AVFrame;
-import org.bytedeco.ffmpeg.global.avcodec;
-import org.bytedeco.ffmpeg.global.avformat;
-import org.bytedeco.ffmpeg.global.avutil;
-import org.bytedeco.ffmpeg.presets.ffmpeg;
+import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.bytedeco.javacv.FFmpegFrameRecorder;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
+public class VideoToAudioExtractor {
 
-public class JavaCVExample {
     public static void main(String[] args) {
-        String videoFilePath = "input.mp4";
-        String audioFilePath = "output.wav";
+        String inputVideoPath = "path/to/your/video.mp4";
+        String outputAudioPath = "path/to/your/audio.wav";
 
-        // Initialize FFmpeg libraries
-        avformat.av_register_all();
-        avcodec.avcodec_register_all();
-        avutil.av_log_set_level(avutil.AV_LOG_DEBUG);
+        try {
+            FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(inputVideoPath);
+            grabber.start();
 
-        AVFormatContext formatContext = avformat.avformat_alloc_context();
-        if (avformat.avformat_open_input(formatContext, videoFilePath, null, null) < 0) {
-            System.err.println("Could not open input file.");
-            return;
-        }
+            FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(outputAudioPath, grabber.getAudioChannels());
+            recorder.setAudioCodec(org.bytedeco.ffmpeg.global.avcodec.AV_CODEC_ID_PCM_S16LE);
+            recorder.setSampleRate(grabber.getSampleRate());
+            recorder.start();
 
-        if (avformat.avformat_find_stream_info(formatContext, null) < 0) {
-            System.err.println("Could not find stream information.");
-            return;
-        }
-
-        AVCodecContext codecContext = null;
-        int audioStreamIndex = -1;
-        for (int i = 0; i < formatContext.nb_streams(); i++) {
-            AVStream stream = formatContext.streams(i);
-            AVCodecContext codec = stream.codec();
-            if (codec.codec_type() == avcodec.AVMEDIA_TYPE_AUDIO) {
-                codecContext = codec;
-                audioStreamIndex = i;
-                break;
-            }
-        }
-
-        if (codecContext == null) {
-            System.err.println("No audio stream found.");
-            return;
-        }
-
-        AVCodec codec = avcodec.avcodec_find_decoder(codecContext.codec_id());
-        if (avcodec.avcodec_open2(codecContext, codec, null) < 0) {
-            System.err.println("Could not open codec.");
-            return;
-        }
-
-        AVPacket packet = new AVPacket();
-        AVFrame frame = avutil.av_frame_alloc();
-        try (FileOutputStream outputStream = new FileOutputStream(new File(audioFilePath))) {
-            while (avformat.av_read_frame(formatContext, packet) >= 0) {
-                if (packet.stream_index() == audioStreamIndex) {
-                    avcodec.avcodec_send_packet(codecContext, packet);
-                    while (avcodec.avcodec_receive_frame(codecContext, frame) == 0) {
-                        // Write audio data to file
-                        int numBytes = avutil.av_get_bytes_per_sample(codecContext.sample_fmt());
-                        byte[] audioData = new byte[frame.nb_samples() * numBytes];
-                        avutil.av_samples_get_buffer_size(null, codecContext.channels(), frame.nb_samples(), codecContext.sample_fmt(), 1);
-                        outputStream.write(audioData);
-                    }
+            org.bytedeco.javacv.Frame frame;
+            while ((frame = grabber.grabFrame()) != null) {
+                if (frame.samples != null) {
+                    recorder.record(frame);
                 }
-                avcodec.av_packet_unref(packet);
             }
-        } catch (IOException e) {
+
+            grabber.stop();
+            grabber.release();
+            recorder.stop();
+            recorder.release();
+
+        } catch (Exception e) {
             e.printStackTrace();
-        } finally {
-            avutil.av_frame_free(frame);
-            avformat.avformat_close_input(formatContext);
-            avcodec.avcodec_close(codecContext);
         }
     }
 }
