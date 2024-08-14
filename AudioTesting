@@ -1,17 +1,38 @@
-  public static void main(String[] args) throws Exception {
+public static void main(String[] args) throws Exception {
+        // Initialize WebDriver (assuming it's set up for Sauce Labs)
+        WebDriver driver = new RemoteWebDriver(new URL("https://ondemand.us-west-1.saucelabs.com/wd/hub"), capabilities);
+
+        // Get the Job ID (Session ID)
+        String jobId = ((RemoteWebDriver) driver).getSessionId().toString();
+
+        // Sauce Labs credentials
         String username = "YOUR_SAUCE_USERNAME";
         String accessKey = "YOUR_SAUCE_ACCESS_KEY";
-        String jobId = "YOUR_JOB_ID";
 
+        // Authorization
         String auth = username + ":" + accessKey;
         String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
 
+        // URL for audio file download
         URL url = new URL("https://api.us-west-1.saucelabs.com/v1/rdc/jobs/" + jobId + "/assets/audio");
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
 
+        // Directory where you want to save the audio file
+        String directoryPath = "audio-files"; // Change this to your desired directory
+
+        // Create the directory if it doesn't exist
+        File directory = new File(directoryPath);
+        if (!directory.exists()) {
+            directory.mkdir();
+        }
+
+        // Path to save the file with Job ID as part of the filename
+        String filePath = directoryPath + File.separator + "audio_" + jobId + ".mp3";
+
+        // Download and save the audio file
         InputStream in = connection.getInputStream();
-        FileOutputStream out = new FileOutputStream(new File("audio.mp3"));
+        FileOutputStream out = new FileOutputStream(new File(filePath));
 
         byte[] buffer = new byte[1024];
         int bytesRead;
@@ -22,5 +43,6 @@
         out.close();
         in.close();
 
-        System.out.println("Audio file downloaded successfully!");
+        System.out.println("Audio file saved at: " + filePath);
     }
+}
