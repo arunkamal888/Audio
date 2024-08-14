@@ -1,21 +1,34 @@
- String videoUrl = "https://saucelabs.com/rest/v1/" + username + "/jobs/" + sessionId + "/assets/video.mp4";
-            URL url = new URL(videoUrl);
+  RestAssured.baseURI = "https://saucelabs.com/rest/v1/";
+        String videoUrl = "jobs/" + username + "/jobs/" + sessionId + "/assets/video.mp4";
 
-            HttpURLConnection connection = (HttpURLConnection) url.openConnection();
-            String auth = username + ":" + accessKey;
-            String encodedAuth = java.util.Base64.getEncoder().encodeToString(auth.getBytes());
-            connection.setRequestProperty("Authorization", "Basic " + encodedAuth);
+        // Encode credentials
+        String auth = username + ":" + accessKey;
+        String encodedAuth = Base64.getEncoder().encodeToString(auth.getBytes());
 
-            InputStream inputStream = connection.getInputStream();
-            OutputStream outputStream = new FileOutputStream("session_video.mp4");
+        // Perform GET request
+        Response response = RestAssured
+            .given()
+            .header("Authorization", "Basic " + encodedAuth)
+            .when()
+            .get(videoUrl);
 
-            byte[] buffer = new byte[1024];
-            int bytesRead;
-            while ((bytesRead = inputStream.read(buffer)) != -1) {
-                outputStream.write(buffer, 0, bytesRead);
+        // Check if the request was successful
+        if (response.getStatusCode() == 200) {
+            try (InputStream inputStream = response.asInputStream();
+                 OutputStream outputStream = new FileOutputStream("session_video.mp4")) {
+
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                }
+
+                System.out.println("Video downloaded successfully!");
+
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-
-            inputStream.close();
-            outputStream.close();
-
-            System.out.println("Video downloaded successfully!");
+        } else {
+            System.out.println("Failed to download video. HTTP code: " + response.getStatusCode());
+        }
+    }
