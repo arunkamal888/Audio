@@ -1,57 +1,52 @@
-import javazoom.jl.decoder.Bitstream;
-import javazoom.jl.decoder.Decoder;
-import javazoom.jl.decoder.Header;
-import javazoom.jl.decoder.SampleBuffer;
-
-import java.io.FileInputStream;
+import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.bytedeco.javacv.Java2DFrameConverter;
+import org.bytedeco.javacv.Frame;
+import javax.sound.sampled.*;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 
-public class MP3SilenceDetection {
-
-    private static final int SILENCE_THRESHOLD = 500;  // Amplitude threshold for silence
-    private static final int SILENCE_DURATION = 1000;  // Minimum silence duration in ms
+public class MP4AudioDetection {
 
     public static void main(String[] args) {
-        String filePath = "path_to_mp3_file.mp3";
+        String filePath = "path/to/your/file.mp4";
 
-        try (FileInputStream fis = new FileInputStream(filePath)) {
-            Bitstream bitstream = new Bitstream(fis);
-            Decoder decoder = new Decoder();
-            Header header;
-            int silenceCount = 0;
-            boolean inSilence = false;
-            int totalSilenceDuration = 0;
+        try {
+            // Use FFmpegFrameGrabber to extract audio
+            FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(filePath);
+            grabber.start();
 
-            while ((header = bitstream.readFrame()) != null) {
-                SampleBuffer output = (SampleBuffer) decoder.decodeFrame(header, bitstream);
+            Frame frame;
+            boolean hasAudio = false;
+            double silenceThreshold = 0.02;  // Adjust this threshold based on your needs
 
-                short[] samples = output.getBuffer();
-                int sampleRate = header.frequency();
-                int frameSize = output.getBufferLength();
-                double frameDuration = (double) frameSize / sampleRate;
+            while ((frame = grabber.grab()) != null) {
+                if (frame.samples != null) {
+                    // Convert frame to byte array
+                    ShortBuffer buffer = (ShortBuffer) frame.samples[0];
+                    short[] audioData = new short[buffer.capacity()];
+                    buffer.get(audioData);
 
-                for (short sample : samples) {
-                    if (Math.abs(sample) < SILENCE_THRESHOLD) {
-                        silenceCount++;
-                    } else {
-                        if (silenceCount > sampleRate * (SILENCE_DURATION / 1000.0)) {
-                            inSilence = true;
-                            totalSilenceDuration += frameDuration * 1000;
-                            System.out.println("Silence detected: " + totalSilenceDuration + " ms");
+                    // Analyze the audio data
+                    for (short sample : audioData) {
+                        double normalizedSample = sample / 32768.0;
+
+                        if (Math.abs(normalizedSample) > silenceThreshold) {
+                            hasAudio = true;
+                            break;
                         }
-                        silenceCount = 0;
-                        inSilence = false;
                     }
+                    if (hasAudio) break;
                 }
-
-                bitstream.closeFrame();
             }
 
-            if (inSilence) {
-                System.out.println("Total Silence Duration: " + totalSilenceDuration + " ms");
+            if (hasAudio) {
+                System.out.println("Audio detected in the file.");
             } else {
-                System.out.println("No significant silence detected.");
+                System.out.println("The file contains only silence.");
             }
+
+            grabber.stop();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
