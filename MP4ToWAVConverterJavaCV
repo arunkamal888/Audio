@@ -1,53 +1,30 @@
-import org.bytedeco.javacv.FFmpegFrameGrabber;
-import org.bytedeco.javacv.Java2DFrameConverter;
-import org.bytedeco.javacv.Frame;
-import javax.sound.sampled.*;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
+import org.jcodec.api.JCodecException;
+import org.jcodec.api.FrameGrab;
+import org.jcodec.common.io.NIOUtils;
+import org.jcodec.common.model.Picture;
 
-public class MP4AudioDetection {
+import java.io.File;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+
+public class MP4AudioDetectionJCodec {
 
     public static void main(String[] args) {
-        String filePath = "path/to/your/file.mp4";
+        File file = new File("path/to/your/file.mp4");
 
         try {
-            // Use FFmpegFrameGrabber to extract audio
-            FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(filePath);
-            grabber.start();
+            FrameGrab grab = FrameGrab.createFrameGrab(NIOUtils.readableChannel(file));
 
-            Frame frame;
-            boolean hasAudio = false;
-            double silenceThreshold = 0.02;  // Adjust this threshold based on your needs
-
-            while ((frame = grabber.grab()) != null) {
-                if (frame.samples != null) {
-                    // Convert frame to byte array
-                    ShortBuffer buffer = (ShortBuffer) frame.samples[0];
-                    short[] audioData = new short[buffer.capacity()];
-                    buffer.get(audioData);
-
-                    // Analyze the audio data
-                    for (short sample : audioData) {
-                        double normalizedSample = sample / 32768.0;
-
-                        if (Math.abs(normalizedSample) > silenceThreshold) {
-                            hasAudio = true;
-                            break;
-                        }
-                    }
-                    if (hasAudio) break;
+            while (true) {
+                Picture picture = grab.getNativeFrame();
+                if (picture == null) {
+                    break;
                 }
+                // JCodec primarily focuses on video, not audio. 
+                // You may need a combination of JCodec for video processing and another library like JavaCV or Tritonus for audio.
+                System.out.println("Frame detected, further audio analysis needed.");
             }
-
-            if (hasAudio) {
-                System.out.println("Audio detected in the file.");
-            } else {
-                System.out.println("The file contains only silence.");
-            }
-
-            grabber.stop();
-
-        } catch (Exception e) {
+        } catch (IOException | JCodecException e) {
             e.printStackTrace();
         }
     }
