@@ -16,3 +16,59 @@
             e.printStackTrace();
         }
     }
+
+
+
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+
+public class MP4ToWAVConverter {
+
+    public static void main(String[] args) {
+        String ffmpegPath = "ffmpeg"; // Use "ffmpeg" if it's in your system PATH, or specify the full path.
+        String inputFilePath = "input.mp4";
+        String outputFilePath = "output.wav";
+
+        // Command to extract audio and convert to WAV
+        String[] command = {
+            ffmpegPath,
+            "-i", inputFilePath,  // Input file
+            "-vn",                // Disable video
+            "-acodec", "pcm_s16le",  // Audio codec
+            "-ar", "44100",       // Audio sample rate
+            "-ac", "2",           // Audio channels
+            outputFilePath        // Output file
+        };
+
+        // ProcessBuilder to execute the FFmpeg command
+        ProcessBuilder processBuilder = new ProcessBuilder(command);
+        processBuilder.redirectErrorStream(true); // Redirect error stream to output stream for easier debugging
+
+        try {
+            // Start the FFmpeg process
+            Process process = processBuilder.start();
+
+            // Capture and print the output from FFmpeg (optional)
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    System.out.println(line);
+                }
+            }
+
+            // Wait for the process to complete
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                System.out.println("MP4 to WAV conversion completed successfully.");
+            } else {
+                System.err.println("Conversion failed with exit code: " + exitCode);
+            }
+
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+}
+
