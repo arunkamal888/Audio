@@ -1,63 +1,34 @@
-import org.bytedeco.javacv.FFmpegFrameGrabber;
-import org.bytedeco.javacv.Frame;
+import org.jcodec.api.FrameGrab;
+import org.jcodec.api.JCodecException;
+import org.jcodec.common.io.NIOUtils;
+import org.jcodec.common.model.Packet;
 
-import java.nio.ShortBuffer;
+import java.io.File;
+import java.io.IOException;
 
-public class MP4SilenceDetection {
-
+public class JCodecAudioCheck {
     public static void main(String[] args) {
-        String filePath = "path/to/your/file.mp4";
+        File file = new File("path/to/your/file.mp4");
 
         try {
-            // Initialize FFmpegFrameGrabber to extract frames
-            FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(filePath);
-            grabber.start();
+            FrameGrab grab = FrameGrab.createFrameGrab(NIOUtils.readableChannel(file));
 
-            Frame frame;
-            boolean isSilent = true;
-            double silenceThreshold = 0.02; // Adjust this threshold as needed
-            int silenceDurationThreshold = 1000; // in milliseconds, adjust based on requirement
-            int silentFrameCount = 0;
-            int frameRate = grabber.getFrameRate();
-
-            while ((frame = grabber.grab()) != null) {
-                if (frame.samples != null) {
-                    ShortBuffer buffer = (ShortBuffer) frame.samples[0];
-                    short[] audioData = new short[buffer.capacity()];
-                    buffer.get(audioData);
-
-                    boolean currentFrameSilent = true;
-                    for (short sample : audioData) {
-                        double normalizedSample = sample / 32768.0;
-                        if (Math.abs(normalizedSample) > silenceThreshold) {
-                            currentFrameSilent = false;
-                            isSilent = false;
-                            break;
-                        }
-                    }
-
-                    if (currentFrameSilent) {
-                        silentFrameCount++;
-                    } else {
-                        silentFrameCount = 0;
-                    }
-
-                    if (silentFrameCount >= silenceDurationThreshold * frameRate / 1000) {
-                        System.out.println("Detected extended silence in the audio.");
-                        break;
-                    }
+            boolean hasAudio = false;
+            while (grab.getNativeFrame() != null) {
+                Packet pkt = grab.getNativePacket();
+                if (pkt.isKeyFrame()) {
+                    hasAudio = true;
+                    break;
                 }
             }
 
-            if (isSilent) {
-                System.out.println("The entire audio track is silent.");
-            } else if (silentFrameCount < silenceDurationThreshold * frameRate / 1000) {
-                System.out.println("No extended silence detected in the audio.");
+            if (hasAudio) {
+                System.out.println("Audio track detected in the MP4 file.");
+            } else {
+                System.out.println("No audio track found in the MP4 file.");
             }
 
-            grabber.stop();
-
-        } catch (Exception e) {
+        } catch (IOException | JCodecException e) {
             e.printStackTrace();
         }
     }
