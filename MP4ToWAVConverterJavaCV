@@ -5,16 +5,15 @@ import org.bytedeco.ffmpeg.avformat.AVFormatContext;
 import org.bytedeco.ffmpeg.avcodec.AVCodecContext;
 import org.bytedeco.ffmpeg.avcodec.AVPacket;
 import org.bytedeco.ffmpeg.avcodec.AVFrame;
-import org.bytedeco.ffmpeg.avutil.AVDictionary;
-import org.bytedeco.ffmpeg.avutil.AVFrame;
 import org.bytedeco.ffmpeg.avcodec.AVCodec;
+import org.bytedeco.ffmpeg.avutil.AVDictionary;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.OutputStream;
+import java.nio.ByteBuffer;
 
-public class MP4ToWAVConverterJavaCV {
+public class MP4ToWAVConverter {
 
     public static void main(String[] args) {
         String mp4FilePath = "path/to/your/inputfile.mp4";
@@ -64,7 +63,10 @@ public class MP4ToWAVConverterJavaCV {
         }
 
         File outputFile = new File(outputFilePath);
-        try (OutputStream outputStream = new FileOutputStream(outputFile)) {
+        try (FileOutputStream outputStream = new FileOutputStream(outputFile)) {
+            // Write WAV header
+            writeWavHeader(outputStream, codecContext);
+
             AVPacket packet = new AVPacket();
             AVFrame frame = avutil.av_frame_alloc();
 
@@ -72,10 +74,11 @@ public class MP4ToWAVConverterJavaCV {
                 if (packet.stream_index() == audioStreamIndex) {
                     avcodec.avcodec_send_packet(codecContext, packet);
                     while (avcodec.avcodec_receive_frame(codecContext, frame) == 0) {
-                        // Write WAV header and audio samples to the output file
-                        // Writing WAV header should be done at the beginning, and data is written as PCM bytes
-                        // This example writes raw PCM data without header for simplicity
-                        outputStream.write(frame.data().getStringBytes());
+                        // Write PCM data
+                        ByteBuffer data = frame.data(0);
+                        byte[] pcmData = new byte[data.remaining()];
+                        data.get(pcmData);
+                        outputStream.write(pcmData);
                     }
                 }
                 avcodec.av_packet_unref(packet);
@@ -91,4 +94,17 @@ public class MP4ToWAVConverterJavaCV {
 
         System.out.println("Conversion completed.");
     }
-}
+
+    private static void writeWavHeader(FileOutputStream outputStream, AVCodecContext codecContext) throws IOException {
+        // Placeholder for writing the WAV header
+        // A proper WAV header should be written here based on codecContext parameters
+        // For example:
+        // - Chunk ID
+        // - Chunk Size
+        // - Format
+        // - Subchunk1 ID
+        // - Subchunk1 Size
+        // - Audio Format
+        // - Number of Channels
+        // - Sample Rate
+        // - Byte Rate
