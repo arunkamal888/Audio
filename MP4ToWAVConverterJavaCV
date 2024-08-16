@@ -1,30 +1,63 @@
-import org.jcodec.api.JCodecException;
-import org.jcodec.api.FrameGrab;
-import org.jcodec.common.io.NIOUtils;
-import org.jcodec.common.model.Picture;
+import org.bytedeco.javacv.FFmpegFrameGrabber;
+import org.bytedeco.javacv.Frame;
 
-import java.io.File;
-import java.io.IOException;
-import java.nio.ByteBuffer;
+import java.nio.ShortBuffer;
 
-public class MP4AudioDetectionJCodec {
+public class MP4SilenceDetection {
 
     public static void main(String[] args) {
-        File file = new File("path/to/your/file.mp4");
+        String filePath = "path/to/your/file.mp4";
 
         try {
-            FrameGrab grab = FrameGrab.createFrameGrab(NIOUtils.readableChannel(file));
+            // Initialize FFmpegFrameGrabber to extract frames
+            FFmpegFrameGrabber grabber = new FFmpegFrameGrabber(filePath);
+            grabber.start();
 
-            while (true) {
-                Picture picture = grab.getNativeFrame();
-                if (picture == null) {
-                    break;
+            Frame frame;
+            boolean isSilent = true;
+            double silenceThreshold = 0.02; // Adjust this threshold as needed
+            int silenceDurationThreshold = 1000; // in milliseconds, adjust based on requirement
+            int silentFrameCount = 0;
+            int frameRate = grabber.getFrameRate();
+
+            while ((frame = grabber.grab()) != null) {
+                if (frame.samples != null) {
+                    ShortBuffer buffer = (ShortBuffer) frame.samples[0];
+                    short[] audioData = new short[buffer.capacity()];
+                    buffer.get(audioData);
+
+                    boolean currentFrameSilent = true;
+                    for (short sample : audioData) {
+                        double normalizedSample = sample / 32768.0;
+                        if (Math.abs(normalizedSample) > silenceThreshold) {
+                            currentFrameSilent = false;
+                            isSilent = false;
+                            break;
+                        }
+                    }
+
+                    if (currentFrameSilent) {
+                        silentFrameCount++;
+                    } else {
+                        silentFrameCount = 0;
+                    }
+
+                    if (silentFrameCount >= silenceDurationThreshold * frameRate / 1000) {
+                        System.out.println("Detected extended silence in the audio.");
+                        break;
+                    }
                 }
-                // JCodec primarily focuses on video, not audio. 
-                // You may need a combination of JCodec for video processing and another library like JavaCV or Tritonus for audio.
-                System.out.println("Frame detected, further audio analysis needed.");
             }
-        } catch (IOException | JCodecException e) {
+
+            if (isSilent) {
+                System.out.println("The entire audio track is silent.");
+            } else if (silentFrameCount < silenceDurationThreshold * frameRate / 1000) {
+                System.out.println("No extended silence detected in the audio.");
+            }
+
+            grabber.stop();
+
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
