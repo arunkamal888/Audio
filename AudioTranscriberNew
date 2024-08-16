@@ -1,37 +1,18 @@
-import org.python.util.PythonInterpreter;
-import org.python.core.PyObject;
-import org.python.core.PyString;
+ String inputFilePath = "input.mp4";
+        String outputFilePath = "output.wav";
+        String ffmpegPath = "/path/to/ffmpeg"; // Update this path if FFmpeg is not in your system's PATH
 
-public class AudioTranscriber {
+        ProcessBuilder processBuilder = new ProcessBuilder(
+                ffmpegPath, 
+                "-i", inputFilePath, 
+                outputFilePath
+        );
 
-    // Hardcoded path to the audio file
-    private static final String AUDIO_FILE_PATH = "path/to/your/audio-file.mp4";
-
-    public static String transcribeAudio() {
-        try (PythonInterpreter interpreter = new PythonInterpreter()) {
-            // Load the Python script
-            interpreter.execfile("transcribe_audio.py");
-            
-            // Get the transcribe_audio function from the script
-            PyObject transcribeAudioFunction = interpreter.get("transcribe_audio");
-            
-            // Call the transcribe_audio function with the hardcoded file path
-            PyObject result = transcribeAudioFunction.__call__(new PyString(AUDIO_FILE_PATH));
-            
-            // Return the result as a string
-            return result.toString();
-        } catch (Exception e) {
+        try {
+            Process process = processBuilder.start();
+            process.waitFor();
+            System.out.println("Conversion complete");
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
-            return null;
         }
     }
-
-    public static void main(String[] args) {
-        String transcription = transcribeAudio();
-        if (transcription != null) {
-            System.out.println("Transcription: " + transcription);
-        } else {
-            System.out.println("An error occurred during transcription.");
-        }
-    }
-}
