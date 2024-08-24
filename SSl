@@ -35,4 +35,13 @@ public class UnsafeOkHttpClient {
             throw new RuntimeException(e);
         }
     }
+OkHttpClient okHttpClient = UnsafeOkHttpClient.getUnsafeOkHttpClient();
+
+        // Configure Rest Assured to use OkHttpClient
+        RestAssuredConfig config = RestAssured.config()
+                .httpClient(HttpClientConfig.httpClientConfig()
+                        .httpClientFactory(() -> HttpClients.createMinimal()));
+
+        RestAssured.config = config;
+        RestAssured.useRelaxedHTTPSValidation(); // Optional: relax SSL validation globally if needed
 }
