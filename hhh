@@ -1,23 +1,102 @@
- String username = System.getenv("SAUCE_USERNAME");
-        String accessKey = System.getenv("SAUCE_ACCESS_KEY");
-        String sauceURL = "https://" + username + ":" + accessKey + "@ondemand.us-west-1.saucelabs.com/wd/hub";
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
+import org.json.JSONObject;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 
-        // Define Safari options for iOS
-        SafariOptions safariOptions = new SafariOptions();
-        safariOptions.setCapability("platformName", "iOS");
-        safariOptions.setCapability("platformVersion", "16.0"); // Update with the desired iOS version
-        safariOptions.setCapability("deviceName", "iPhone 14 Pro"); // Update with the desired device name
+public class SauceLabsAutomation {
+    
+    private static final String SAUCE_LABS_USERNAME = "your_username";
+    private static final String SAUCE_LABS_ACCESS_KEY = "your_access_key";
 
-        // Define Sauce Labs options
-        MutableCapabilities sauceOptions = new MutableCapabilities();
-        sauceOptions.setCapability("name", "iPhone Safari Test");
-        sauceOptions.setCapability("build", "Sample Build");
-        sauceOptions.setCapability("appiumVersion", "2.0.0"); // Ensure Appium version is supported
+    public static void main(String[] args) {
+        WebDriver driver = new RemoteWebDriver(...); // Your WebDriver setup here
+        
+        // Get the session ID
+        String sessionId = ((RemoteWebDriver) driver).getSessionId().toString();
+        System.out.println("Session ID: " + sessionId);
 
-        // Merge both sets of capabilities
-        MutableCapabilities capabilities = new MutableCapabilities();
-        capabilities.setCapability(SafariOptions.CAPABILITY, safariOptions);
-        capabilities.setCapability("sauce:options", sauceOptions);
+        // Run your test
+        driver.get("https://example.com");
+        
+        // Quit the driver
+        driver.quit();
 
-        // Initialize RemoteWebDriver with Sauce Labs URL and capabilities
-        WebDriver driver = new RemoteWebDriver(new URL(sauceURL), capabilities);
+        // Wait for the session to finish and download the video
+        waitForSauceLabsTestToFinish(sessionId);
+    }
+
+    public static void waitForSauceLabsTestToFinish(String sessionId) {
+        String testStatusUrl = "https://api.us-west-1.saucelabs.com/v1/rdc/jobs/" + sessionId;
+        String credentials = okhttp3.Credentials.basic(SAUCE_LABS_USERNAME, SAUCE_LABS_ACCESS_KEY);
+
+        OkHttpClient client = new OkHttpClient();
+        boolean isJobFinished = false;
+
+        while (!isJobFinished) {
+            try {
+                Request request = new Request.Builder()
+                        .url(testStatusUrl)
+                        .header("Authorization", credentials)
+                        .build();
+
+                try (Response response = client.newCall(request).execute()) {
+                    if (response.isSuccessful()) {
+                        JSONObject jsonResponse = new JSONObject(response.body().string());
+                        isJobFinished = jsonResponse.getBoolean("completed");
+                    }
+                }
+
+                if (!isJobFinished) {
+                    Thread.sleep(10000); // Wait for 10 seconds before checking again
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        System.out.println("Test is finished. Downloading video...");
+
+        try {
+            downloadSauceLabsVideo(sessionId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void downloadSauceLabsVideo(String sessionId) throws Exception {
+        String videoUrl = "https://api.us-west-1.saucelabs.com/v1/rdc/jobs/" + sessionId + "/assets/video.mp4";
+        String credentials = okhttp3.Credentials.basic(SAUCE_LABS_USERNAME, SAUCE_LABS_ACCESS_KEY);
+
+        OkHttpClient client = new OkHttpClient();
+
+        Request request = new Request.Builder()
+                .url(videoUrl)
+                .header("Authorization", credentials)
+                .build();
+
+        try (Response response = client.newCall(request).execute()) {
+            if (response.isSuccessful()) {
+                InputStream inputStream = response.body().byteStream();
+                FileOutputStream fileOutputStream = new FileOutputStream("path_to_save_video/video.mp4");
+
+                byte[] buffer = new byte[1024];
+                int bytesRead;
+
+                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                    fileOutputStream.write(buffer, 0, bytesRead);
+                }
+
+                inputStream.close();
+                fileOutputStream.close();
+
+                System.out.println("Video downloaded successfully.");
+            } else {
+                System.err.println("Failed to download video. HTTP Status Code: " + response.code());
+            }
+        }
+    }
+}
