@@ -1,0 +1,114 @@
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.remote.RemoteWebDriver;
+import org.json.JSONObject;
+
+import java.io.BufferedInputStream;
+import java.io.BufferedReader;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.Base64;
+
+public class SauceLabsAutomation {
+
+    private static final String SAUCE_LABS_USERNAME = "your_username";
+    private static final String SAUCE_LABS_ACCESS_KEY = "your_access_key";
+
+    public static void main(String[] args) {
+        WebDriver driver = new RemoteWebDriver(...); // Your WebDriver setup here
+
+        // Get the session ID
+        String sessionId = ((RemoteWebDriver) driver).getSessionId().toString();
+        System.out.println("Session ID: " + sessionId);
+
+        // Run your test
+        driver.get("https://example.com");
+
+        // Quit the driver
+        driver.quit();
+
+        // Wait for the session to finish and download the video
+        waitForSauceLabsTestToFinish(sessionId);
+    }
+
+    public static void waitForSauceLabsTestToFinish(String sessionId) {
+        String testStatusUrl = "https://api.us-west-1.saucelabs.com/v1/rdc/jobs/" + sessionId;
+        String credentials = Base64.getEncoder().encodeToString((SAUCE_LABS_USERNAME + ":" + SAUCE_LABS_ACCESS_KEY).getBytes());
+
+        boolean isJobFinished = false;
+
+        while (!isJobFinished) {
+            try {
+                URL url = new URL(testStatusUrl);
+                HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("Authorization", "Basic " + credentials);
+
+                int responseCode = connection.getResponseCode();
+                if (responseCode == HttpURLConnection.HTTP_OK) {
+                    BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    String inputLine;
+                    StringBuilder content = new StringBuilder();
+                    while ((inputLine = in.readLine()) != null) {
+                        content.append(inputLine);
+                    }
+                    in.close();
+
+                    JSONObject jsonResponse = new JSONObject(content.toString());
+                    String status = jsonResponse.getString("status");
+                    isJobFinished = status.equals("complete");
+                }
+
+                connection.disconnect();
+
+                if (!isJobFinished) {
+                    Thread.sleep(10000); // Wait for 10 seconds before checking again
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        System.out.println("Test is finished. Downloading video...");
+
+        try {
+            downloadSauceLabsVideo(sessionId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static void downloadSauceLabsVideo(String sessionId) throws Exception {
+        String videoUrl = "https://api.us-west-1.saucelabs.com/v1/rdc/jobs/" + sessionId + "/assets/video.mp4";
+        String credentials = Base64.getEncoder().encodeToString((SAUCE_LABS_USERNAME + ":" + SAUCE_LABS_ACCESS_KEY).getBytes());
+
+        URL url = new URL(videoUrl);
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Authorization", "Basic " + credentials);
+
+        int responseCode = connection.getResponseCode();
+        if (responseCode == HttpURLConnection.HTTP_OK) {
+            InputStream inputStream = new BufferedInputStream(connection.getInputStream());
+            FileOutputStream fileOutputStream = new FileOutputStream("path_to_save_video/video.mp4");
+
+            byte[] buffer = new byte[1024];
+            int bytesRead;
+
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                fileOutputStream.write(buffer, 0, bytesRead);
+            }
+
+            inputStream.close();
+            fileOutputStream.close();
+
+            System.out.println("Video downloaded successfully.");
+        } else {
+            System.err.println("Failed to download video. HTTP Status Code: " + responseCode);
+        }
+
+        connection.disconnect();
+    }
+}
