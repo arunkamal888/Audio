@@ -100,3 +100,31 @@ public class SauceLabsAutomation {
         }
     }
 }
+
+
+
+    public static boolean isIconNotVisible(WebDriver driver, By iconLocator) {
+        WebDriverWait wait = new WebDriverWait(driver, Duration.ofSeconds(10));
+        
+        // Retry mechanism to handle StaleElementReferenceException
+        for (int attempts = 0; attempts < 3; attempts++) {
+            try {
+                // Wait for the icon to be present before checking visibility
+                wait.until(ExpectedConditions.presenceOfElementLocated(iconLocator));
+
+                // Wait until the icon is no longer visible
+                return wait.until(ExpectedConditions.invisibilityOfElementLocated(iconLocator));
+            } catch (StaleElementReferenceException e) {
+                // Log and retry if stale element exception occurs
+                System.out.println("StaleElementReferenceException caught. Retrying...");
+            } catch (NoSuchElementException e) {
+                // If the element is not found, we assume it's not visible
+                return true;
+            } catch (Exception e) {
+                // Log other exceptions
+                e.printStackTrace();
+                return false;
+            }
+        }
+        return false; // Failed after retries
+    }
