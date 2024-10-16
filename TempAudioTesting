@@ -1,12 +1,15 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
 def plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, quality_percentage, output_file):
     """Plot the audio waveform with analysis information and save as PNG."""
     time = np.linspace(0., duration, num=len(data))
     
     plt.figure(figsize=(12, 6))
     
-    # Create subplots: 80% for waveform, 20% for details
-    ax1 = plt.subplot2grid((5, 1), (0, 0), rowspan=4)  # Larger section for waveform
-    ax2 = plt.subplot2grid((5, 1), (4, 0))  # Smaller section for details
+    # Create subplots: 70% for waveform, 30% for details
+    ax1 = plt.subplot2grid((6, 1), (0, 0), rowspan=4)  # Larger section for waveform
+    ax2 = plt.subplot2grid((6, 1), (4, 0), rowspan=2)  # Larger section for details
 
     # Plot the waveform
     ax1.plot(time, data, label='Waveform', color='blue')
@@ -40,7 +43,7 @@ def plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, qual
 
     # Adding the text with a bounding box and adjusting the position slightly
     ax2.text(
-        0.05, 0.4, textstr, fontsize=9, verticalalignment='center', horizontalalignment='left',
+        0.05, 0.6, textstr, fontsize=9, verticalalignment='center', horizontalalignment='left',
         bbox=dict(facecolor='white', alpha=0.7, edgecolor='black')
     )
 
@@ -48,7 +51,7 @@ def plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, qual
     ax2.set_axis_off()
 
     # Add some padding to the layout to ensure nothing gets cut off
-    plt.tight_layout(pad=2)
+    plt.tight_layout(pad=3)  # Increase padding slightly
 
     # Save the figure as a PNG file
     plt.savefig(output_file)
