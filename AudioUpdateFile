@@ -121,3 +121,104 @@ if __name__ == "__main__":
 
     # Step 3: Rate the audio quality
     rate_audio_quality(output_audio_file)
+
+
++++++++++++++++++++++++++++++++++++
+
+import numpy as np
+import scipy.io.wavfile as wav
+import matplotlib.pyplot as plt
+from moviepy.editor import VideoFileClip
+import speech_recognition as sr
+
+def extract_audio_from_video(mp4_file, output_audio_file):
+    """
+    Extracts the audio from an MP4 file and saves it as a .wav file.
+    """
+    video = VideoFileClip(mp4_file)
+    video.audio.write_audiofile(output_audio_file)
+    print(f"Audio extracted to: {output_audio_file}")
+
+def analyze_audio_properties(data, sample_rate):
+    """Analyze properties like duration, RMS, and channels."""
+    duration = len(data) / sample_rate  # in seconds
+    channels = data.shape[1] if len(data.shape) > 1 else 1  # Check if stereo or mono
+
+    # Calculate RMS (Root Mean Square)
+    rms = np.sqrt(np.mean(data**2))
+
+    return duration, channels, rms
+
+def detect_silence(data, threshold=0.01):
+    """Detect silence in audio data."""
+    silence = np.mean(np.abs(data)) < threshold
+    return silence
+
+def calculate_snr(signal, noise):
+    """Calculate Signal-to-Noise Ratio (SNR)."""
+    signal_power = np.mean(signal ** 2)
+    noise_power = np.mean(noise ** 2)
+    snr = 10 * np.log10(signal_power / noise_power) if noise_power > 0 else float('inf')
+    return snr
+
+def plot_waveform(data, sample_rate, duration, channels, rms, silence, snr):
+    """Plot the audio waveform with analysis information."""
+    time = np.linspace(0., duration, num=len(data))
+    
+    plt.figure(figsize=(12, 6))
+    plt.plot(time, data, label='Waveform')
+    plt.title('Audio Waveform')
+    plt.xlabel('Time [s]')
+    plt.ylabel('Amplitude')
+    plt.axhline(0, color='grey', linestyle='--')  # Zero amplitude line
+    plt.legend()
+    plt.grid()
+
+    # Adding annotations for audio properties
+    plt.text(0.1, 0.8 * np.max(data), f'Duration: {duration:.2f} s', fontsize=10)
+    plt.text(0.1, 0.75 * np.max(data), f'Channels: {channels}', fontsize=10)
+    plt.text(0.1, 0.7 * np.max(data), f'RMS: {rms:.5f}', fontsize=10)
+    plt.text(0.1, 0.65 * np.max(data), f'Silence Detected: {"Yes" if silence else "No"}', fontsize=10)
+    plt.text(0.1, 0.6 * np.max(data), f'SNR: {snr:.2f} dB', fontsize=10)
+
+    plt.show()
+
+def rate_audio_quality(file_path):
+    """Rate the audio quality based on various metrics."""
+    # Load audio file directly within this function
+    sample_rate, data = wav.read(file_path)
+
+    # Analyze audio properties
+    duration, channels, rms = analyze_audio_properties(data, sample_rate)
+
+    # Detect silence
+    silence = detect_silence(data)
+
+    # Calculate SNR using a simple method (assuming noise is a small portion of the signal)
+    if len(data) > 1000:  # To avoid index errors
+        snr = calculate_snr(data[:len(data)//10], data[len(data)//10:len(data)//5])  # Arbitrary split
+    else:
+        snr = 0
+
+    # Print report
+    print(f"Audio Quality Report for: {file_path}")
+    print(f"Duration: {duration:.2f} seconds")
+    print(f"Channels: {channels}")
+    print(f"RMS: {rms:.5f}")
+    print(f"Silence Detected: {'Yes' if silence else 'No'}")
+    print(f"SNR: {snr:.2f} dB")
+
+    # Plot waveform with detailed analysis
+    plot_waveform(data, sample_rate, duration, channels, rms, silence, snr)
+
+if __name__ == "__main__":
+    # Input video and output audio files
+    mp4_file = "input_video.mp4"  # Replace with your MP4 file path
+    output_audio_file = "extracted_audio.wav"
+
+    # Step 1: Extract audio from the MP4 file
+    extract_audio_from_video(mp4_file, output_audio_file)
+
+    # Step 2: Rate the audio quality
+    rate_audio_quality(output_audio_file)
+
