@@ -92,6 +92,19 @@ def rate_audio_quality(file_path):
     print(f"Silence Detected: {'Yes' if silence else 'No'}")
     print(f"SNR: {snr:.2f} dB")
 
+    # Evaluate quality
+    quality_score = 0
+    if rms > 0.01:  # Arbitrary threshold for RMS
+        quality_score += 1
+    if not silence:  # Good if there's no silence
+        quality_score += 1
+    if snr > 20:  # Arbitrary threshold for SNR
+        quality_score += 1
+
+    # Determine final quality status
+    quality_status = "Good" if quality_score >= 2 else "Not Good"
+    print(f"Overall Audio Quality: {quality_status}")
+
     # Plot waveform
     plot_waveform(data, sample_rate)
 
