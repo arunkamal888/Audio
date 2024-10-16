@@ -34,15 +34,20 @@ def plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, qual
     time = np.linspace(0., duration, num=len(data))
     
     plt.figure(figsize=(12, 6))
-    plt.plot(time, data, label='Waveform', color='blue')
-    plt.title('Audio Waveform')
-    plt.xlabel('Time [s]')
-    plt.ylabel('Amplitude')
-    plt.axhline(0, color='grey', linestyle='--')  # Zero amplitude line
-    plt.legend()
-    plt.grid()
+    
+    # Create subplots: 80% for waveform, 20% for details
+    ax1 = plt.subplot2grid((5, 1), (0, 0), rowspan=4)  # Larger section for waveform
+    ax2 = plt.subplot2grid((5, 1), (4, 0))  # Smaller section for details
 
-    # Create a text box in the lower-left corner with all the audio details
+    # Plot the waveform
+    ax1.plot(time, data, label='Waveform', color='blue')
+    ax1.set_title('Audio Waveform')
+    ax1.set_xlabel('Time [s]')
+    ax1.set_ylabel('Amplitude')
+    ax1.axhline(0, color='grey', linestyle='--')  # Zero amplitude line
+    ax1.grid()
+
+    # Details for the second axis (below the waveform)
     textstr = '\n'.join((
         f'Duration: {duration:.2f} seconds',
         f'Channels: {channels}',
@@ -51,15 +56,15 @@ def plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, qual
         f'SNR: {snr:.2f} dB',
         f'Quality Percentage: {quality_percentage:.2f}%',
         f'Overall Quality: {"Good" if quality_percentage >= 75 else "Not Good"}'))
+    
+    # Position the text in ax2, align left
+    ax2.text(0.05, 0.5, textstr, fontsize=10, verticalalignment='center', horizontalalignment='left')
 
-    # Define the properties of the text box (position and style)
-    props = dict(boxstyle='round', facecolor='white', alpha=0.5)
-
-    # Place the text box in the lower-left corner of the plot
-    plt.text(0.05 * duration, -0.9 * np.max(data), textstr, fontsize=10,
-             verticalalignment='bottom', horizontalalignment='left', bbox=props)
+    # Hide the x and y ticks in the details box
+    ax2.set_axis_off()
 
     # Save the figure as a PNG file
+    plt.tight_layout()
     plt.savefig(output_file)
     plt.close()  # Close the figure to free up memory
 
