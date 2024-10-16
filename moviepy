@@ -8,3 +8,95 @@ def extract_audio_from_video(mp4_file, output_audio_file):
 mp4_file = "input_video.mp4"
 output_audio_file = "extracted_audio.wav"
 extract_audio_from_video(mp4_file, output_audio_file)
+
+
+
+from pydub import AudioSegment
+import librosa
+import numpy as np
+import os
+
+def check_audio_properties(file_path):
+    audio = AudioSegment.from_file(file_path)
+    duration = len(audio) / 1000  # in seconds
+    bitrate = audio.frame_rate  # Bitrate in Hz
+    channels = audio.channels  # Number of channels (mono or stereo)
+
+    # Define bitrate quality threshold (e.g., > 44,100 Hz is good for most audio)
+    bitrate_good = bitrate >= 44100
+    return {
+        "duration": duration,
+        "bitrate": bitrate,
+        "channels": channels,
+        "bitrate_good": bitrate_good
+    }
+
+def analyze_loudness(file_path):
+    audio, sr = librosa.load(file_path, sr=None)
+    rms = librosa.feature.rms(y=audio).mean()  # Root Mean Square Energy
+    # Define RMS loudness threshold (good if RMS is above 0.02)
+    loudness_good = rms > 0.02
+    return {
+        "rms": rms,
+        "loudness_good": loudness_good
+    }
+
+def detect_silence_and_noise(file_path):
+    audio, sr = librosa.load(file_path, sr=None)
+
+    # Detect silence
+    silence_threshold = 0.01
+    silence_percentage = np.mean(np.abs(audio) < silence_threshold) * 100
+    silence_good = silence_percentage < 10  # Good if silence < 10%
+
+    # Calculate signal-to-noise ratio (SNR)
+    signal_power = np.mean(audio**2)
+    noise_power = np.var(audio)
+    snr = 10 * np.log10(signal_power / noise_power)
+    snr_good = snr > 20  # Good if SNR > 20 dB
+
+    return {
+        "silence_percentage": silence_percentage,
+        "snr": snr,
+        "silence_good": silence_good,
+        "snr_good": snr_good
+    }
+
+def rate_audio_quality(file_path):
+    # Step 1: Check basic properties (bitrate, duration, channels)
+    properties = check_audio_properties(file_path)
+
+    # Step 2: Analyze loudness (RMS)
+    loudness = analyze_loudness(file_path)
+
+    # Step 3: Detect silence and calculate SNR
+    silence_noise = detect_silence_and_noise(file_path)
+
+    # Calculate overall rating percentage
+    total_checks = 4
+    good_checks = sum([
+        properties['bitrate_good'],
+        loudness['loudness_good'],
+        silence_noise['silence_good'],
+        silence_noise['snr_good']
+    ])
+    quality_percentage = (good_checks / total_checks) * 100
+
+    # Determine if the overall quality is good or not
+    quality_status = "Good" if quality_percentage >= 75 else "Not Good"
+
+    # Print detailed results and final quality
+    print(f"Audio Quality Report for: {file_path}")
+    print(f"Duration: {properties['duration']} seconds")
+    print(f"Bitrate: {properties['bitrate']} Hz (Good: {properties['bitrate_good']})")
+    print(f"Loudness (RMS): {loudness['rms']} (Good: {loudness['loudness_good']})")
+    print(f"Silence Percentage: {silence_noise['silence_percentage']:.2f}% (Good: {silence_noise['silence_good']})")
+    print(f"Signal-to-Noise Ratio (SNR): {silence_noise['snr']:.2f} dB (Good: {silence_noise['snr_good']})")
+    print(f"Overall Quality: {quality_status} ({quality_percentage:.2f}%)")
+
+if __name__ == "__main__":
+    # Specify your audio file path
+    audio_file_path = "path/to/your/audio/file.mp3"
+    
+    # Test audio quality
+    rate_audio_quality(audio_file_path)
