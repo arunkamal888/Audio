@@ -100,3 +100,88 @@ if __name__ == "__main__":
     
     # Test audio quality
     rate_audio_quality(audio_file_path)
+
+
+
+
+
+
+
+
+import numpy as np
+import scipy.io.wavfile as wav
+import matplotlib.pyplot as plt
+
+def load_audio(file_path):
+    """Load audio file and return the sample rate and audio data."""
+    sample_rate, data = wav.read(file_path)
+    return sample_rate, data
+
+def analyze_audio_properties(data):
+    """Analyze properties like duration, RMS, and channels."""
+    duration = len(data) / sample_rate  # in seconds
+    channels = data.shape[1] if len(data.shape) > 1 else 1  # Check if stereo or mono
+
+    # Calculate RMS (Root Mean Square)
+    rms = np.sqrt(np.mean(data**2))
+
+    return duration, channels, rms
+
+def detect_silence(data, threshold=0.01):
+    """Detect silence in audio data."""
+    silence = np.mean(np.abs(data)) < threshold
+    return silence
+
+def calculate_snr(signal, noise):
+    """Calculate Signal-to-Noise Ratio (SNR)."""
+    signal_power = np.mean(signal ** 2)
+    noise_power = np.mean(noise ** 2)
+    snr = 10 * np.log10(signal_power / noise_power) if noise_power > 0 else float('inf')
+    return snr
+
+def plot_waveform(data, sample_rate):
+    """Plot the audio waveform."""
+    time = np.linspace(0., len(data) / sample_rate, num=len(data))
+    plt.figure(figsize=(12, 4))
+    plt.plot(time, data, label='Waveform')
+    plt.title('Audio Waveform')
+    plt.xlabel('Time [s]')
+    plt.ylabel('Amplitude')
+    plt.legend()
+    plt.grid()
+    plt.show()
+
+def rate_audio_quality(file_path):
+    # Load audio file
+    sample_rate, data = load_audio(file_path)
+
+    # Analyze audio properties
+    duration, channels, rms = analyze_audio_properties(data)
+
+    # Detect silence
+    silence = detect_silence(data)
+
+    # Calculate SNR using simple method (assuming noise is a small portion of the signal)
+    if len(data) > 1000:  # To avoid index errors
+        snr = calculate_snr(data[:len(data)//10], data[len(data)//10:len(data)//5])  # Arbitrary split
+    else:
+        snr = 0
+
+    # Print report
+    print(f"Audio Quality Report for: {file_path}")
+    print(f"Duration: {duration:.2f} seconds")
+    print(f"Channels: {channels}")
+    print(f"RMS: {rms:.5f}")
+    print(f"Silence Detected: {'Yes' if silence else 'No'}")
+    print(f"SNR: {snr:.2f} dB")
+
+    # Plot waveform
+    plot_waveform(data, sample_rate)
+
+if __name__ == "__main__":
+    # Replace with the path to your audio file
+    audio_file_path = "path/to/your/audio/file.wav"  # Change to a .wav file
+    rate_audio_quality(audio_file_path)
+
+pip install numpy scipy matplotlib
+
