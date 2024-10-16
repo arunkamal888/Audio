@@ -1,5 +1,33 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import scipy.io.wavfile as wav
+from moviepy.editor import VideoFileClip
+import speech_recognition as sr
+
+def extract_audio_from_video(mp4_file, output_audio_file):
+    """Extracts the audio from an MP4 file and saves it as a .wav file."""
+    video = VideoFileClip(mp4_file)
+    video.audio.write_audiofile(output_audio_file)
+    print(f"Audio extracted to: {output_audio_file}")
+
+def analyze_audio_properties(data, sample_rate):
+    """Analyze properties like duration, RMS, and channels."""
+    duration = len(data) / sample_rate  # in seconds
+    channels = data.shape[1] if len(data.shape) > 1 else 1  # Check if stereo or mono
+    rms = np.sqrt(np.mean(data**2))  # Calculate RMS (Root Mean Square)
+    return duration, channels, rms
+
+def detect_silence(data, threshold=0.01):
+    """Detect silence in audio data."""
+    silence = np.mean(np.abs(data)) < threshold
+    return silence
+
+def calculate_snr(signal, noise):
+    """Calculate Signal-to-Noise Ratio (SNR)."""
+    signal_power = np.mean(signal ** 2)
+    noise_power = np.mean(noise ** 2)
+    snr = 10 * np.log10(signal_power / noise_power) if noise_power > 0 else float('inf')
+    return snr
 
 def plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, quality_percentage, output_file):
     """Plot the audio waveform with analysis information and save as PNG."""
@@ -56,3 +84,83 @@ def plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, qual
     # Save the figure as a PNG file
     plt.savefig(output_file)
     plt.close()  # Close the figure to free up memory
+
+def transcribe_audio(audio_file):
+    """Recognizes speech from the given audio file using Google's Speech Recognition API."""
+    recognizer = sr.Recognizer()
+    with sr.AudioFile(audio_file) as source:
+        audio_data = recognizer.record(source)
+        try:
+            print("Performing speech recognition...")
+            text = recognizer.recognize_google(audio_data)
+            return text
+        except sr.UnknownValueError:
+            print("Speech recognition could not understand the audio")
+            return ""
+        except sr.RequestError:
+            print("Could not request results from Google Speech Recognition service")
+            return ""
+
+def rate_audio_quality(file_path):
+    """Rate the audio quality based on various metrics."""
+    # Load audio file directly within this function
+    sample_rate, data = wav.read(file_path)
+
+    # Analyze audio properties
+    duration, channels, rms = analyze_audio_properties(data, sample_rate)
+
+    # Detect silence
+    silence = detect_silence(data)
+
+    # Calculate SNR using a simple method (assuming noise is a small portion of the signal)
+    if len(data) > 1000:  # To avoid index errors
+        snr = calculate_snr(data[:len(data)//10], data[len(data)//10:len(data)//5])  # Arbitrary split
+    else:
+        snr = 0
+
+    # Print report
+    print(f"Audio Quality Report for: {file_path}")
+    print(f"Duration: {duration:.2f} seconds")
+    print(f"Channels: {channels}")
+    print(f"RMS: {rms:.5f}")
+    print(f"Silence Detected: {'Yes' if silence else 'No'}")
+    print(f"SNR: {snr:.2f} dB")
+
+    # Transcribe audio
+    transcription = transcribe_audio(file_path)
+    print("Transcription:", transcription)
+
+    # Calculate overall quality percentage
+    total_checks = 5  # Number of quality checks
+    good_checks = sum([
+        rms > 0.01,  # RMS should be greater than threshold
+        not silence,  # Silence detected should be false
+        snr > 20,  # SNR threshold
+        transcription != "",  # Successful transcription
+    ])
+    
+    # Add duration check (should be reasonable length, e.g., > 1 second)
+    if duration > 1:
+        good_checks += 1
+
+    quality_percentage = (good_checks / total_checks) * 100
+
+    # Determine if the overall quality is good or not
+    quality_status = "Good" if quality_percentage >= 75 else "Not Good"
+
+    # Print final quality report
+    print(f"Overall Quality: {quality_status} ({quality_percentage:.2f}%)")
+
+    # Save waveform plot as PNG
+    plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, quality_percentage, "audio_waveform.png")
+
+if __name__ == "__main__":
+    # Input video and output audio files
+    mp4_file = "input_video.mp4"  # Replace with your MP4 file path
+    output_audio_file = "extracted_audio.wav"
+
+    # Step 1: Extract audio from the MP4 file
+    extract_audio_from_video(mp4_file, output_audio_file)
+
+    # Step 2: Rate the audio quality
+    rate_audio_quality(output_audio_file)
