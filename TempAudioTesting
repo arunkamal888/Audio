@@ -42,26 +42,19 @@ def plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, qual
     plt.legend()
     plt.grid()
 
-    # Adding annotations for audio properties
-    plt.text(0.1, 0.8 * np.max(data), f'Duration: {duration:.2f} s', fontsize=10)
-    plt.text(0.1, 0.75 * np.max(data), f'Channels: {channels}', fontsize=10)
-    plt.text(0.1, 0.7 * np.max(data), f'RMS: {rms:.5f}', fontsize=10)
-    plt.text(0.1, 0.65 * np.max(data), f'Silence Detected: {"Yes" if silence else "No"}', fontsize=10)
-    plt.text(0.1, 0.6 * np.max(data), f'SNR: {snr:.2f} dB', fontsize=10)
-    plt.text(0.1, 0.55 * np.max(data), f'Quality: {quality_percentage:.2f}%', fontsize=12, color='green', fontweight='bold')
+    # Adding annotations for audio properties on the plot
+    text_y_pos = 0.8 * np.max(data)  # Start the text placement at 80% of the max amplitude
+    text_step = 0.05 * np.max(data)  # Spacing between the lines of text
+
+    plt.text(0.1, text_y_pos, f'Duration: {duration:.2f} s', fontsize=10)
+    plt.text(0.1, text_y_pos - text_step, f'Channels: {channels}', fontsize=10)
+    plt.text(0.1, text_y_pos - 2 * text_step, f'RMS: {rms:.5f}', fontsize=10)
+    plt.text(0.1, text_y_pos - 3 * text_step, f'Silence Detected: {"Yes" if silence else "No"}', fontsize=10)
+    plt.text(0.1, text_y_pos - 4 * text_step, f'SNR: {snr:.2f} dB', fontsize=10)
+    plt.text(0.1, text_y_pos - 5 * text_step, f'Quality Percentage: {quality_percentage:.2f}%', fontsize=12, color='green', fontweight='bold')
+    plt.text(0.1, text_y_pos - 6 * text_step, f'Overall Quality: {"Good" if quality_percentage >= 75 else "Not Good"}', fontsize=12, color='green', fontweight='bold')
 
     # Save the figure as a PNG file
-    plt.savefig(output_file)
-    plt.close()  # Close the figure to free up memory
-
-def plot_amplitude_distribution(data, output_file):
-    """Plot the amplitude distribution of the audio signal and save as PNG."""
-    plt.figure(figsize=(12, 6))
-    plt.hist(data, bins=50, color='skyblue', edgecolor='black')
-    plt.title('Amplitude Distribution')
-    plt.xlabel('Amplitude')
-    plt.ylabel('Frequency')
-    plt.grid()
     plt.savefig(output_file)
     plt.close()  # Close the figure to free up memory
 
@@ -85,10 +78,6 @@ def rate_audio_quality(file_path):
     """Rate the audio quality based on various metrics."""
     # Load audio file directly within this function
     sample_rate, data = wav.read(file_path)
-
-    # Check if data is stereo or mono
-    if len(data.shape) > 1:  # Stereo
-        data = data[:, 0]  # Use only one channel for analysis
 
     # Analyze audio properties
     duration, channels, rms = analyze_audio_properties(data, sample_rate)
@@ -135,11 +124,8 @@ def rate_audio_quality(file_path):
     # Print final quality report
     print(f"Overall Quality: {quality_status} ({quality_percentage:.2f}%)")
 
-    # Save waveform plot as PNG
-    plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, quality_percentage, "audio_waveform.png")
-    
-    # Save amplitude distribution plot as PNG
-    plot_amplitude_distribution(data, "amplitude_distribution.png")
+    # Save waveform plot as PNG with annotations
+    plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, quality_percentage, "audio_waveform_with_info.png")
 
 if __name__ == "__main__":
     # Input video and output audio files
