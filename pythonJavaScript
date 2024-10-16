@@ -1,0 +1,33 @@
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+
+public class ExecutePythonScript {
+
+    public static void main(String[] args) {
+        // Specify the path to the Python interpreter
+        String pythonInterpreter = "python"; // or "python3" if required
+        String scriptPath = "path/to/your/script.py"; // Change to your script's path
+
+        // Build the command
+        ProcessBuilder processBuilder = new ProcessBuilder(pythonInterpreter, scriptPath, "arg1", "arg2"); // Add arguments if needed
+        processBuilder.redirectErrorStream(true); // Redirect error stream to the output stream
+
+        try {
+            // Start the process
+            Process process = processBuilder.start();
+
+            // Read the output from the command
+            BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+            String line;
+            while ((line = reader.readLine()) != null) {
+                System.out.println(line); // Print the output of the Python script
+            }
+
+            // Wait for the process to complete and get the exit code
+            int exitCode = process.waitFor();
+            System.out.println("Exited with code: " + exitCode);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
