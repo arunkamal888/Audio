@@ -70,7 +70,7 @@ def transcribe_audio(audio_file):
             print("Could not request results from Google Speech Recognition service")
             return ""
 
-def rate_audio_quality(file_path):
+def rate_audio_quality(file_path, output_graph_path):
     """Rate the audio quality based on various metrics."""
     # Load audio file directly within this function
     sample_rate, data = wav.read(file_path)
@@ -121,15 +121,16 @@ def rate_audio_quality(file_path):
     print(f"Overall Quality: {quality_status} ({quality_percentage:.2f}%)")
 
     # Save waveform plot as PNG
-    plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, quality_percentage, "audio_waveform.png")
+    plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, quality_percentage, output_graph_path)
 
 if __name__ == "__main__":
     # Input video and output audio files
     mp4_file = "input_video.mp4"  # Replace with your MP4 file path
     output_audio_file = "extracted_audio.wav"
+    output_graph_path = "path/to/save/audio_waveform.png"  # Specify your desired output path for the graph
 
     # Step 1: Extract audio from the MP4 file
     extract_audio_from_video(mp4_file, output_audio_file)
 
-    # Step 2: Rate the audio quality
-    rate_audio_quality(output_audio_file)
+    # Step 2: Rate the audio quality and save the graph
+    rate_audio_quality(output_audio_file, output_graph_path)
