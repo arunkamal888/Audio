@@ -86,6 +86,10 @@ def rate_audio_quality(file_path):
     # Load audio file directly within this function
     sample_rate, data = wav.read(file_path)
 
+    # Check if data is stereo or mono
+    if len(data.shape) > 1:  # Stereo
+        data = data[:, 0]  # Use only one channel for analysis
+
     # Analyze audio properties
     duration, channels, rms = analyze_audio_properties(data, sample_rate)
 
