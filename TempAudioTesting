@@ -48,17 +48,32 @@ def plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, qual
     ax1.grid()
 
     # Details for the second axis (below the waveform)
-    textstr = '\n'.join((
+    details = [
         f'Duration: {duration:.2f} seconds',
         f'Channels: {channels}',
         f'RMS: {rms:.5f}',
         f'Silence Detected: {"Yes" if silence else "No"}',
         f'SNR: {snr:.2f} dB',
         f'Quality Percentage: {quality_percentage:.2f}%',
-        f'Overall Quality: {"Good" if quality_percentage >= 75 else "Not Good"}'))
+        f'Overall Quality: {"Good" if quality_percentage >= 75 else "Not Good"}'
+    ]
     
-    # Position the text in ax2, align left
-    ax2.text(0.05, 0.5, textstr, fontsize=10, verticalalignment='center', horizontalalignment='left')
+    # Use a bounding box around the text and bold the keys
+    textstr = '\n'.join([
+        r'$\bf{Duration:}$' + f' {duration:.2f} seconds',
+        r'$\bf{Channels:}$' + f' {channels}',
+        r'$\bf{RMS:}$' + f' {rms:.5f}',
+        r'$\bf{Silence\ Detected:}$' + f' {"Yes" if silence else "No"}',
+        r'$\bf{SNR:}$' + f' {snr:.2f} dB',
+        r'$\bf{Quality\ Percentage:}$' + f' {quality_percentage:.2f}%',
+        r'$\bf{Overall\ Quality:}$' + f' {"Good" if quality_percentage >= 75 else "Not Good"}'
+    ])
+
+    # Adding the text with a bounding box
+    ax2.text(
+        0.05, 0.5, textstr, fontsize=10, verticalalignment='center', horizontalalignment='left',
+        bbox=dict(facecolor='white', alpha=0.7, edgecolor='black')
+    )
 
     # Hide the x and y ticks in the details box
     ax2.set_axis_off()
