@@ -1,0 +1,170 @@
+import numpy as np
+import scipy.io.wavfile as wav
+import matplotlib.pyplot as plt
+from moviepy.editor import VideoFileClip
+import speech_recognition as sr
+from scipy.signal import stft
+
+def extract_audio_from_video(mp4_file, output_audio_file):
+    """Extract the audio from an MP4 file and save it as a .wav file."""
+    video = VideoFileClip(mp4_file)
+    video.audio.write_audiofile(output_audio_file)
+    print(f"Audio extracted to: {output_audio_file}")
+
+def analyze_audio_properties(data, sample_rate):
+    """Analyze properties like duration, RMS, and channels."""
+    duration = len(data) / sample_rate  # in seconds
+    channels = data.shape[1] if len(data.shape) > 1 else 1  # Check if stereo or mono
+
+    # Calculate RMS (Root Mean Square)
+    rms = np.sqrt(np.mean(data**2))
+
+    return duration, channels, rms
+
+def dynamic_silence_detection(data, sample_rate, window_duration=0.05, dynamic_threshold_factor=0.05):
+    """
+    Dynamically detect silence using short windows and a threshold based on background noise level.
+    """
+    window_size = int(window_duration * sample_rate)  # Convert window duration to samples
+    silence_windows = 0
+    noise_threshold = np.std(data) * dynamic_threshold_factor  # Dynamic threshold
+
+    for i in range(0, len(data) - window_size, window_size):
+        window = data[i:i+window_size]
+        if np.mean(np.abs(window)) < noise_threshold:
+            silence_windows += 1
+
+    silence_percentage = (silence_windows * window_duration) / (len(data) / sample_rate)
+    return silence_percentage
+
+def detect_glitches(data, sample_rate, window_duration=0.01, glitch_threshold=0.1):
+    """Detect audio glitches using energy-based detection in small windows."""
+    window_size = int(window_duration * sample_rate)
+    glitches = []
+    
+    for i in range(0, len(data) - window_size, window_size):
+        window = data[i:i + window_size]
+        energy = np.mean(np.abs(window))
+        if energy > glitch_threshold:
+            glitches.append(i / len(data))  # Relative time of glitch
+    
+    return glitches
+
+def calculate_weighted_snr(signal, sample_rate, window_duration=0.1):
+    """Calculate weighted Signal-to-Noise Ratio (SNR) in short windows."""
+    window_size = int(window_duration * sample_rate)
+    snr_values = []
+    
+    for i in range(0, len(signal) - window_size, window_size):
+        signal_window = signal[i:i + window_size]
+        noise = signal_window - np.mean(signal_window)
+        signal_power = np.mean(signal_window ** 2)
+        noise_power = np.mean(noise ** 2)
+        snr = 10 * np.log10(signal_power / noise_power) if noise_power > 0 else float('inf')
+        snr_values.append(snr)
+
+    return np.mean(snr_values)  # Weighted average SNR
+
+def detect_clipping(data, threshold=0.99):
+    """Detect clipping when the signal amplitude reaches or exceeds max levels too often."""
+    clipped_samples = np.sum(np.abs(data) >= threshold)
+    clip_ratio = clipped_samples / len(data)
+    return clip_ratio > 0.01  # Arbitrary threshold, can be fine-tuned
+
+def frequency_analysis_stft(data, sample_rate, window='hann', nperseg=1024):
+    """Perform Short-Time Fourier Transform (STFT) for frequency analysis."""
+    f, t, Zxx = stft(data, fs=sample_rate, window=window, nperseg=nperseg)
+    
+    # Detecting frequency anomalies or spikes
+    power_spectrum = np.abs(Zxx) ** 2
+    freq_spikes = np.sum(np.max(power_spectrum, axis=0) > 1.0)  # Can fine-tune threshold
+    
+    return freq_spikes
+
+def transcribe_audio(audio_file):
+    """
+    Recognizes speech from the given audio file using Google's Speech Recognition API.
+    Returns the transcribed text.
+    """
+    recognizer = sr.Recognizer()
+    with sr.AudioFile(audio_file) as source:
+        audio_data = recognizer.record(source)
+        try:
+            print("Performing speech recognition...")
+            text = recognizer.recognize_google(audio_data)
+            return text
+        except sr.UnknownValueError:
+            print("Speech recognition could not understand the audio")
+            return ""
+        except sr.RequestError:
+            print("Could not request results from Google Speech Recognition service")
+            return ""
+
+def rate_audio_quality(file_path):
+    """Rate the audio quality based on various metrics."""
+    # Load audio file directly within this function
+    sample_rate, data = wav.read(file_path)
+
+    # Analyze audio properties
+    duration, channels, rms = analyze_audio_properties(data, sample_rate)
+
+    # Dynamic Silence Detection
+    silence_percentage = dynamic_silence_detection(data, sample_rate)
+    silence_detected = silence_percentage > 0.2  # If silence is more than 20% of audio
+
+    # Detect glitches
+    glitches = detect_glitches(data, sample_rate)
+
+    # Detect clipping
+    clipping = detect_clipping(data)
+
+    # Calculate weighted SNR
+    snr = calculate_weighted_snr(data, sample_rate)
+
+    # Perform frequency analysis
+    freq_spikes = frequency_analysis_stft(data, sample_rate)
+
+    # Print report
+    print(f"Audio Quality Report for: {file_path}")
+    print(f"Duration: {duration:.2f} seconds")
+    print(f"Channels: {channels}")
+    print(f"RMS: {rms:.5f}")
+    print(f"Silence Detected: {'Yes' if silence_detected else 'No'} ({silence_percentage:.2%})")
+    print(f"SNR: {snr:.2f} dB")
+    print(f"Glitches Detected: {len(glitches)}")
+    print(f"Clipping Detected: {'Yes' if clipping else 'No'}")
+    print(f"Frequency Spikes: {freq_spikes}")
+
+    # Transcribe audio
+    transcription = transcribe_audio(file_path)
+    print("Transcription:", transcription)
+
+    # Calculate overall quality percentage
+    total_checks = 6  # Number of quality checks
+    good_checks = sum([
+        rms > 0.01,  # RMS should be greater than threshold
+        not silence_detected,  # Silence detected should be false
+        snr > 20,  # SNR threshold
+        transcription != "",  # Successful transcription
+        len(glitches) == 0,  # No glitches
+        not clipping  # No clipping
+    ])
+
+    quality_percentage = (good_checks / total_checks) * 100
+
+    # Determine if the overall quality is good or not
+    quality_status = "Good" if quality_percentage >= 75 else "Not Good"
+
+    # Print final quality report
+    print(f"Overall Quality: {quality_status} ({quality_percentage:.2f}%)")
+
+if __name__ == "__main__":
+    # Input video and output audio files
+    mp4_file = "input_video.mp4"  # Replace with your MP4 file path
+    output_audio_file = "extracted_audio.wav"
+
+    # Step 1: Extract audio from the MP4 file
+    extract_audio_from_video(mp4_file, output_audio_file)
+
+    # Step 2: Rate the audio quality
+    rate_audio_quality(output_audio_file)
