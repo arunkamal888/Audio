@@ -3,10 +3,12 @@ import scipy.io.wavfile as wav
 import matplotlib.pyplot as plt
 from moviepy.editor import VideoFileClip
 import speech_recognition as sr
-from scipy.signal import stft
+from scipy.fftpack import fft
 
 def extract_audio_from_video(mp4_file, output_audio_file):
-    """Extract the audio from an MP4 file and save it as a .wav file."""
+    """
+    Extracts the audio from an MP4 file and saves it as a .wav file.
+    """
     video = VideoFileClip(mp4_file)
     video.audio.write_audiofile(output_audio_file)
     print(f"Audio extracted to: {output_audio_file}")
@@ -21,49 +23,16 @@ def analyze_audio_properties(data, sample_rate):
 
     return duration, channels, rms
 
-def dynamic_silence_detection(data, sample_rate, window_duration=0.05, dynamic_threshold_factor=0.05):
-    """
-    Dynamically detect silence using short windows and a threshold based on background noise level.
-    """
-    window_size = int(window_duration * sample_rate)  # Convert window duration to samples
-    silence_windows = 0
-    noise_threshold = np.std(data) * dynamic_threshold_factor  # Dynamic threshold
-
+def detect_glitches(data, threshold=0.1):
+    """Detect audio glitches based on amplitude spikes or sudden drops."""
+    glitches = []
+    window_size = 1024  # Small window size for quick changes detection
     for i in range(0, len(data) - window_size, window_size):
         window = data[i:i+window_size]
-        if np.mean(np.abs(window)) < noise_threshold:
-            silence_windows += 1
-
-    silence_percentage = (silence_windows * window_duration) / (len(data) / sample_rate)
-    return silence_percentage
-
-def detect_glitches(data, sample_rate, window_duration=0.01, glitch_threshold=0.1):
-    """Detect audio glitches using energy-based detection in small windows."""
-    window_size = int(window_duration * sample_rate)
-    glitches = []
-    
-    for i in range(0, len(data) - window_size, window_size):
-        window = data[i:i + window_size]
-        energy = np.mean(np.abs(window))
-        if energy > glitch_threshold:
-            glitches.append(i / len(data))  # Relative time of glitch
-    
+        max_amp = np.max(np.abs(window))
+        if max_amp > threshold:
+            glitches.append(i / len(data))  # Store glitch time in relative position
     return glitches
-
-def calculate_weighted_snr(signal, sample_rate, window_duration=0.1):
-    """Calculate weighted Signal-to-Noise Ratio (SNR) in short windows."""
-    window_size = int(window_duration * sample_rate)
-    snr_values = []
-    
-    for i in range(0, len(signal) - window_size, window_size):
-        signal_window = signal[i:i + window_size]
-        noise = signal_window - np.mean(signal_window)
-        signal_power = np.mean(signal_window ** 2)
-        noise_power = np.mean(noise ** 2)
-        snr = 10 * np.log10(signal_power / noise_power) if noise_power > 0 else float('inf')
-        snr_values.append(snr)
-
-    return np.mean(snr_values)  # Weighted average SNR
 
 def detect_clipping(data, threshold=0.99):
     """Detect clipping when the signal amplitude reaches or exceeds max levels too often."""
@@ -71,34 +40,54 @@ def detect_clipping(data, threshold=0.99):
     clip_ratio = clipped_samples / len(data)
     return clip_ratio > 0.01  # Arbitrary threshold, can be fine-tuned
 
-def frequency_analysis_stft(data, sample_rate, window='hann', nperseg=1024):
-    """Perform Short-Time Fourier Transform (STFT) for frequency analysis."""
-    f, t, Zxx = stft(data, fs=sample_rate, window=window, nperseg=nperseg)
+def detect_silence(data, threshold=0.01):
+    """Detect silence in audio data."""
+    silence = np.mean(np.abs(data)) < threshold
+    return silence
+
+def calculate_snr(signal, noise):
+    """Calculate Signal-to-Noise Ratio (SNR)."""
+    signal_power = np.mean(signal ** 2)
+    noise_power = np.mean(noise ** 2)
+    snr = 10 * np.log10(signal_power / noise_power) if noise_power > 0 else float('inf')
+    return snr
+
+def frequency_analysis(data, sample_rate):
+    """Analyze frequency spectrum to detect unusual spikes or drops."""
+    N = len(data)
+    yf = fft(data)
+    xf = np.linspace(0.0, sample_rate / 2.0, N // 2)
     
-    # Detecting frequency anomalies or spikes
-    power_spectrum = np.abs(Zxx) ** 2
-    freq_spikes = np.sum(np.max(power_spectrum, axis=0) > 1.0)  # Can fine-tune threshold
+    # Detecting abnormal spikes
+    spectrum = 2.0 / N * np.abs(yf[:N // 2])
+    freq_spikes = np.sum(spectrum > 1.0)  # Can fine-tune threshold for frequency spike detection
     
     return freq_spikes
 
-def transcribe_audio(audio_file):
-    """
-    Recognizes speech from the given audio file using Google's Speech Recognition API.
-    Returns the transcribed text.
-    """
-    recognizer = sr.Recognizer()
-    with sr.AudioFile(audio_file) as source:
-        audio_data = recognizer.record(source)
-        try:
-            print("Performing speech recognition...")
-            text = recognizer.recognize_google(audio_data)
-            return text
-        except sr.UnknownValueError:
-            print("Speech recognition could not understand the audio")
-            return ""
-        except sr.RequestError:
-            print("Could not request results from Google Speech Recognition service")
-            return ""
+def plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, glitches, output_file):
+    """Plot the audio waveform with analysis information and save as PNG."""
+    time = np.linspace(0., duration, num=len(data))
+    
+    plt.figure(figsize=(12, 6))
+    plt.plot(time, data, label='Waveform')
+    plt.title('Audio Waveform')
+    plt.xlabel('Time [s]')
+    plt.ylabel('Amplitude')
+    plt.axhline(0, color='grey', linestyle='--')  # Zero amplitude line
+    plt.legend()
+    plt.grid()
+
+    # Adding annotations for audio properties
+    plt.text(0.1, 0.8 * np.max(data), f'Duration: {duration:.2f} s', fontsize=10)
+    plt.text(0.1, 0.75 * np.max(data), f'Channels: {channels}', fontsize=10)
+    plt.text(0.1, 0.7 * np.max(data), f'RMS: {rms:.5f}', fontsize=10)
+    plt.text(0.1, 0.65 * np.max(data), f'Silence Detected: {"Yes" if silence else "No"}', fontsize=10)
+    plt.text(0.1, 0.6 * np.max(data), f'SNR: {snr:.2f} dB', fontsize=10)
+    plt.text(0.1, 0.55 * np.max(data), f'Glitches Detected: {len(glitches)}', fontsize=10)
+
+    # Save the figure as a PNG file
+    plt.savefig(output_file)
+    plt.close()  # Close the figure to free up memory
 
 def rate_audio_quality(file_path):
     """Rate the audio quality based on various metrics."""
@@ -108,28 +97,27 @@ def rate_audio_quality(file_path):
     # Analyze audio properties
     duration, channels, rms = analyze_audio_properties(data, sample_rate)
 
-    # Dynamic Silence Detection
-    silence_percentage = dynamic_silence_detection(data, sample_rate)
-    silence_detected = silence_percentage > 0.2  # If silence is more than 20% of audio
+    # Detect silence
+    silence = detect_silence(data)
 
     # Detect glitches
-    glitches = detect_glitches(data, sample_rate)
+    glitches = detect_glitches(data)
 
     # Detect clipping
     clipping = detect_clipping(data)
 
-    # Calculate weighted SNR
-    snr = calculate_weighted_snr(data, sample_rate)
+    # Calculate SNR using a simple method (assuming noise is a small portion of the signal)
+    snr = calculate_snr(data[:len(data)//10], data[len(data)//10:len(data)//5])  # Arbitrary split
 
     # Perform frequency analysis
-    freq_spikes = frequency_analysis_stft(data, sample_rate)
+    freq_spikes = frequency_analysis(data, sample_rate)
 
     # Print report
     print(f"Audio Quality Report for: {file_path}")
     print(f"Duration: {duration:.2f} seconds")
     print(f"Channels: {channels}")
     print(f"RMS: {rms:.5f}")
-    print(f"Silence Detected: {'Yes' if silence_detected else 'No'} ({silence_percentage:.2%})")
+    print(f"Silence Detected: {'Yes' if silence else 'No'}")
     print(f"SNR: {snr:.2f} dB")
     print(f"Glitches Detected: {len(glitches)}")
     print(f"Clipping Detected: {'Yes' if clipping else 'No'}")
@@ -143,7 +131,7 @@ def rate_audio_quality(file_path):
     total_checks = 6  # Number of quality checks
     good_checks = sum([
         rms > 0.01,  # RMS should be greater than threshold
-        not silence_detected,  # Silence detected should be false
+        not silence,  # Silence detected should be false
         snr > 20,  # SNR threshold
         transcription != "",  # Successful transcription
         len(glitches) == 0,  # No glitches
@@ -157,6 +145,9 @@ def rate_audio_quality(file_path):
 
     # Print final quality report
     print(f"Overall Quality: {quality_status} ({quality_percentage:.2f}%)")
+
+    # Save waveform plot as PNG
+    plot_waveform(data, sample_rate, duration, channels, rms, silence, snr, glitches, "audio_waveform.png")
 
 if __name__ == "__main__":
     # Input video and output audio files
