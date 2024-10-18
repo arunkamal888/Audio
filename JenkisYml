@@ -1,0 +1,45 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Prepare Base64 Image') {
+            steps {
+                script {
+                    // Convert PNG to Base64 and store it in a variable
+                    def imagePath = "path/to/image.png"
+                    def base64Image = sh(script: "base64 -w 0 ${imagePath}", returnStdout: true).trim()
+
+                    // Save the Base64 image string to a file (optional)
+                    writeFile file: 'base64_image.txt', text: base64Image
+                }
+            }
+        }
+        stage('Send Email') {
+            steps {
+                script {
+                    // Load Base64 string from the file (if needed)
+                    def base64Image = readFile('base64_image.txt').trim()
+
+                    // Create the HTML body with embedded image
+                    def emailBody = """
+                    <html>
+                    <body>
+                        <h1>Hello!</h1>
+                        <p>This is an embedded PNG image:</p>
+                        <img src='data:image/png;base64,${base64Image}' />
+                    </body>
+                    </html>
+                    """
+
+                    // Send the email using emailext
+                    emailext(
+                        subject: "Email with Embedded PNG Image",
+                        body: "${emailBody}",
+                        mimeType: 'text/html',
+                        to: 'recipient@example.com'
+                    )
+                }
+            }
+        }
+    }
+}
