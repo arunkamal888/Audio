@@ -47,3 +47,7 @@ if __name__ == "__main__":
     audio_file = sys.argv[2]
     result = transcribe_audio(model_path, audio_file)
     print(result)
+
+
+
+java -Dspring.profiles.active=local $JAVA_OPTS -cp /app org.springframework.boot.loader.launch.JarLauncher
