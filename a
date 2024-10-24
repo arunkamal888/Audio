@@ -50,4 +50,5 @@ if __name__ == "__main__":
 
 
 
-java -Dspring.profiles.active=local $JAVA_OPTS -cp /app org.springframework.boot.loader.launch.JarLauncher
+JAVA_OPTS="-XX:MaxDirectMemorySize=10M -XX:MaxletSpaceSize=105M -XX:ReservedCodeCacheSize=240M -Xss1M -Xmx420m -Xrun1dwp:transport-dt_socket,server=y,suspend=n,address=5005 -Dlogging.file.name=/app/logs/app.log -Dlogging.level.root=INFO"
+
