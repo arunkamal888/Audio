@@ -72,3 +72,5 @@ public class MP4ToWAVConverter {
     }
 }
 
+curl -v https://ssm.us-east-1.amazonaws.com
+
