@@ -680,3 +680,4 @@ if __name__ == "__main__":
     # Step 2: Rate the audio quality
     rate_audio_quality(output_audio_file)
 
+java -Dorg.springframework.boot.logging.LoggingSystem=none -cp /app org.springframework.boot.loader.JarLauncher
