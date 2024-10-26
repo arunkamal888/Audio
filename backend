@@ -9,3 +9,7 @@ public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 
     return http.build();
 }
+
+
+AWS_ACCESS_KEY_ID=dummy_access_key AWS_SECRET_ACCESS_KEY=dummy_secret_key java -Dorg.springframework.boot.logging.LoggingSystem=none -cp /app org.springframework.boot.loader.JarLauncher
+
