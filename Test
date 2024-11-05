@@ -1,22 +1,40 @@
- @Test
-    public void testTransformOutput_MeetingWithVideoFeature_VideoSDK_Offer() throws ProcessorException {
-        // Arrange
-        Meeting meeting = new Meeting();
-        meeting.setApiVersion("v2"); // Set version to v2
-        MeetingDetails details = new MeetingDetails();
-        meeting.setDetails(details);
+ Meeting meeting = new Meeting();
 
-        // Create a feature with VIDEO type and VideoSDK offering
-        MeetingFeature videoFeature = new MeetingFeature();
-        videoFeature.setMeetingFeatureTypeName(FeatureType.VIDEO);
-        Map<String, String> properties = new HashMap<>();
-        properties.put(VideoSDKPropertyNameType.MEETING_OFFERING.getString(), MeetingOfferingType.VIDEOSDK.getString());
-        videoFeature.setMeetingFeatureProperties(properties);
+        // Set up the meeting host
+        Host host = new Host();
+        host.setEmailAddress("host@example.com");
+        meeting.setMeetingHost(host);
 
-        // Add the feature to details
-        details.setMeetingFeatures(Arrays.asList(videoFeature));
+        // Set up the participants
+        Attendee participant1 = new Attendee();
+        participant1.setEmailAddress("participant1@example.com");
 
-        // Public URL that should be set if condition is met
-        String publicUrlText = "https://example.com/public-url";
+        Attendee participant2 = new Attendee();
+        participant2.setEmailAddress("participant2@example.com");
 
-   assertEquals(publicUrlText, meeting.getDetails().getMeetingPublicUrlText(),);
+        meeting.setParticipants(Arrays.asList(participant1, participant2));
+
+        // Act
+        meetingProcessor.transformOutput(meeting); // Invoke the method
+
+        // Assert
+        // Verify that the host's email address was copied and then nullified
+        assertEquals("host@example.com", meeting.getMeetingHost().getPartyemailAddressText(), 
+            "Host's email should be copied to PartyemailAddressText");
+        assertNull(meeting.getMeetingHost().getEmailAddress(), 
+            "Host's email address should be set to null");
+
+        // Verify that the participants' email addresses were copied and then nullified
+        assertEquals("participant1@example.com", participant1.getPartyemailAddressText(), 
+            "Participant 1's email should be copied to PartyemailAddressText");
+        assertNull(participant1.getEmailAddress(), 
+            "Participant 1's email address should be set to null");
+
+        assertEquals("participant2@example.com", participant2.getPartyemailAddressText(), 
+            "Participant 2's email should be copied to PartyemailAddressText");
+        assertNull(participant2.getEmailAddress(), 
+            "Participant 2's email address should be set to null");
+
+        // Verify that the ApiVersion was set to null
+        assertNull(meeting.getApiVersion(), 
+            "Meeting's ApiVersion should be set to null");
