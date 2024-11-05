@@ -18,3 +18,5 @@
 
         // Public URL that should be set if condition is met
         String publicUrlText = "https://example.com/public-url";
+
+   assertEquals(publicUrlText, meeting.getDetails().getMeetingPublicUrlText(),);
