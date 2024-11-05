@@ -1,0 +1,65 @@
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
+
+public class MeetingProcessorTest {
+
+    @Test
+    public void testTransformOutput_MultipleScenarios() throws ProcessorException {
+        MeetingProcessor meetingProcessor = new MeetingProcessor(); // Assume your class is named MeetingProcessor
+
+        // Scenario 1: Null Meeting - should return null
+        Meeting meeting = null;
+        Meeting result = meetingProcessor.transformOutput(meeting);
+        assertNull(result, "Scenario 1 failed: Meeting is null, expected null result.");
+
+        // Scenario 2: Meeting with null details
+        meeting = new Meeting();
+        meeting.setApiVersion("1"); // Initially set to version 1
+        meeting.setDetails(null);   // No details
+        result = meetingProcessor.transformOutput(meeting);
+        assertNotNull(result, "Scenario 2 failed: Expected non-null result when meeting has null details.");
+        assertEquals("2", result.getApiVersion(), "Scenario 2 failed: ApiVersion should be set to '2'.");
+
+        // Scenario 3: Meeting with details and a VIDEO feature
+        meeting = new Meeting();
+        MeetingDetails details = new MeetingDetails();
+        meeting.setDetails(details);
+        meeting.setApiVersion("1");
+
+        MeetingFeature videoFeature = new MeetingFeature();
+        videoFeature.setMeetingFeatureTypeName(FeatureType.VIDEO);
+        videoFeature.getMeetingFeatureProperties().put(VideoSDKPropertyNameType.MEETING_OFFERING.getString(),
+                MeetingOfferingType.VIDEOSDK.getString());
+
+        details.getMeetingFeatures().add(videoFeature);
+
+        result = meetingProcessor.transformOutput(meeting);
+        assertNotNull(result, "Scenario 3 failed: Meeting with VIDEO feature returned null.");
+        assertEquals("2", result.getApiVersion(), "Scenario 3 failed: ApiVersion should be set to '2'.");
+        assertNotNull(result.getDetails().getMeetingPublicUrlText(), "Scenario 3 failed: Public URL text should not be null.");
+
+        // Scenario 4: Host email handling
+        meeting = new Meeting();
+        MeetingHost host = new MeetingHost();
+        host.setEmailAddress("host@example.com");
+        meeting.setMeetingHost(host);
+
+        result = meetingProcessor.transformOutput(meeting);
+        assertNotNull(result, "Scenario 4 failed: Meeting host returned null.");
+        assertEquals("host@example.com", result.getMeetingHost().getPartyEmailAddressText(),
+                "Scenario 4 failed: Host email should be copied to PartyEmailAddressText.");
+        assertNull(result.getMeetingHost().getEmailAddress(), "Scenario 4 failed: Host email should be set to null.");
+
+        // Scenario 5: Participant email handling
+        meeting = new Meeting();
+        Attendee attendee = new Attendee();
+        attendee.setEmailAddress("attendee@example.com");
+        meeting.setParticipants(List.of(attendee));
+
+        result = meetingProcessor.transformOutput(meeting);
+        assertNotNull(result, "Scenario 5 failed: Meeting participants returned null.");
+        assertEquals("attendee@example.com", result.getParticipants().get(0).getPartyEmailAddressText(),
+                "Scenario 5 failed: Participant email should be copied to PartyEmailAddressText.");
+        assertNull(result.getParticipants().get(0).getEmailAddress(), "Scenario 5 failed: Participant email should be set to null.");
+    }
+}
