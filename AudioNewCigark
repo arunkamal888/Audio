@@ -6,3 +6,5 @@ $env:PUPPETEER_CHROMIUM_REVISION="1261287"
 npm install puppeteer
 
 executablePath: 'C:\\path\\to\\chromium\\chrome.exe', 
+
+npm install --save-dev webpack webpack-cli
