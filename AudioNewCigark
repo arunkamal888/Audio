@@ -8,3 +8,15 @@ npm install puppeteer
 executablePath: 'C:\\path\\to\\chromium\\chrome.exe', 
 
 npm install --save-dev webpack webpack-cli
+
+
+const path = require('path');
+
+module.exports = {
+  entry: './src/index.js',  // Your main JavaScript file (entry point)
+  output: {
+    filename: 'app.js',     // Output filename (in the dist folder)
+    path: path.resolve(__dirname, 'dist'),  // Output folder
+  },
+  mode: 'production'  // Use 'development' for debugging purposes
+};
