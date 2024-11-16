@@ -1,2 +1,6 @@
 set PUPPETEER_CHROMIUM_REVISION=1100000
 npm install puppeteer
+
+
+$env:PUPPETEER_CHROMIUM_REVISION="1261287"
+npm install puppeteer
