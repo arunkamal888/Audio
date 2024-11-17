@@ -1,40 +1,39 @@
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
-import org.openqa.selenium.OutputType;
-import org.openqa.selenium.TakesScreenshot;
-import java.io.File;
-import org.apache.commons.io.FileUtils;
 
-public class HeadlessChromeScreenshot {
+public class SeleniumFakeMediaStreams {
     public static void main(String[] args) {
-        // Set the path to the ChromeDriver executable
+        // Set path to your ChromeDriver
         System.setProperty("webdriver.chrome.driver", "/path/to/chromedriver");
 
-        // Create ChromeOptions and add headless argument
+        // Create ChromeOptions to add necessary arguments
         ChromeOptions options = new ChromeOptions();
         options.addArguments("--headless"); // Run Chrome in headless mode
-        options.addArguments("--disable-gpu"); // Disable GPU for compatibility
-        options.addArguments("--window-size=1920,1080"); // Set window size
+        options.addArguments("--use-fake-ui-for-media-stream"); // Auto-approve media stream permissions
+        options.addArguments("--use-fake-device-for-media-stream"); // Use fake devices for media
+        options.addArguments("--use-file-for-fake-audio-capture=/path/to/your/fake-audio.wav"); // Path to fake audio (WAV format)
+        options.addArguments("--use-file-for-fake-video-capture=/path/to/your/fake-video.y4m"); // Path to fake video (Y4M format)
+        options.addArguments("--allow-file-access-from-files"); // Allow access to local files
+        options.addArguments("--disable-gpu"); // Disable GPU (for compatibility in headless mode)
+        options.addArguments("--no-sandbox"); // Disable the sandbox for ChromeDriver
 
-        // Launch Chrome with the options
+        // Initialize WebDriver with the ChromeOptions
         WebDriver driver = new ChromeDriver(options);
 
         try {
-            // Navigate to a website
+            // Navigate to the web page
             driver.get("https://example.com");
 
-            // Take a screenshot
+            // Optionally take a screenshot for verification
             File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-
-            // Specify the path to save the screenshot
             FileUtils.copyFile(screenshot, new File("screenshot.png"));
             System.out.println("Screenshot saved successfully!");
 
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
-            // Close the browser
+            // Quit the driver
             driver.quit();
         }
     }
