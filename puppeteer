@@ -1,0 +1,39 @@
+const puppeteer = require('puppeteer');
+
+(async () => {
+  // Launch browser instance
+  const browser = await puppeteer.launch({
+    headless: false, // Set to true if you want the browser to run in headless mode
+    args: [
+      '--use-fake-ui-for-media-stream', // Auto-approve media stream permissions
+      '--use-fake-device-for-media-stream', // Use fake media devices (audio and video)
+      '--use-file-for-fake-audio-capture=/path/to/your/fake-audio.wav', // Fake audio file path
+      '--use-file-for-fake-video-capture=/path/to/your/fake-video.y4m', // Fake video file path in Y4M format
+      '--allow-file-access-from-files', // Allow file access for local testing
+    ],
+  });
+
+  // Open a new browser page
+  const page = await browser.newPage();
+
+  // Navigate to your desired webpage
+  await page.goto('https://example.com'); // Replace with your target URL
+
+  // Wait for the button or target element to be available
+  await page.waitForSelector('button#start'); // Replace with the actual button selector
+
+  // Click the button (or any target element)
+  await page.click('button#start'); // Simulate click action on the button
+
+  // Wait for a moment after clicking
+  await page.waitForTimeout(2000); // Adjust this wait time based on your needs
+
+  // Capture a screenshot and save it
+  await page.screenshot({ path: 'screenshot.png' }); // Replace 'screenshot.png' with your desired file name
+
+  // Let the browser run for a few seconds to simulate interaction or media playback
+  await page.waitForTimeout(5000); // Wait for 5 seconds (adjust time as necessary)
+
+  // Close the browser after completing the tasks
+  await browser.close();
+})();
