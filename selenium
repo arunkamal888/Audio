@@ -1,40 +1,30 @@
-import org.openqa.selenium.WebDriver;
-import org.openqa.selenium.chrome.ChromeDriver;
-import org.openqa.selenium.chrome.ChromeOptions;
+const puppeteer = require('puppeteer');
 
-public class SeleniumFakeMediaStreams {
-    public static void main(String[] args) {
-        // Set path to your ChromeDriver
-        System.setProperty("webdriver.chrome.driver", "/path/to/chromedriver");
+(async () => {
+  // Launch Puppeteer with specific Chrome options
+  const browser = await puppeteer.launch({
+    headless: true, // Run Chrome in headless mode
+    args: [
+      '--use-fake-ui-for-media-stream', // Auto-approve media stream permissions
+      '--use-fake-device-for-media-stream', // Use fake devices for media
+      '--use-file-for-fake-audio-capture=/path/to/your/fake-audio.wav', // Path to fake audio file
+      '--use-file-for-fake-video-capture=/path/to/your/fake-video.y4m', // Path to fake video file (Y4M format)
+      '--allow-file-access-from-files', // Allow access to local files
+      '--no-sandbox', // Disable sandbox (if required)
+      '--disable-gpu' // Disable GPU for compatibility in headless mode
+    ]
+  });
 
-        // Create ChromeOptions to add necessary arguments
-        ChromeOptions options = new ChromeOptions();
-        options.addArguments("--headless"); // Run Chrome in headless mode
-        options.addArguments("--use-fake-ui-for-media-stream"); // Auto-approve media stream permissions
-        options.addArguments("--use-fake-device-for-media-stream"); // Use fake devices for media
-        options.addArguments("--use-file-for-fake-audio-capture=/path/to/your/fake-audio.wav"); // Path to fake audio (WAV format)
-        options.addArguments("--use-file-for-fake-video-capture=/path/to/your/fake-video.y4m"); // Path to fake video (Y4M format)
-        options.addArguments("--allow-file-access-from-files"); // Allow access to local files
-        options.addArguments("--disable-gpu"); // Disable GPU (for compatibility in headless mode)
-        options.addArguments("--no-sandbox"); // Disable the sandbox for ChromeDriver
+  // Open a new page in Puppeteer
+  const page = await browser.newPage();
 
-        // Initialize WebDriver with the ChromeOptions
-        WebDriver driver = new ChromeDriver(options);
+  // Navigate to the desired website
+  await page.goto('https://example.com');
 
-        try {
-            // Navigate to the web page
-            driver.get("https://example.com");
+  // Take a screenshot for verification
+  await page.screenshot({ path: 'screenshot.png' });
+  console.log('Screenshot saved successfully!');
 
-            // Optionally take a screenshot for verification
-            File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
-            FileUtils.copyFile(screenshot, new File("screenshot.png"));
-            System.out.println("Screenshot saved successfully!");
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            // Quit the driver
-            driver.quit();
-        }
-    }
-}
+  // Close the browser after completing the tasks
+  await browser.close();
+})();
