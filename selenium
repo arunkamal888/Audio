@@ -14,6 +14,7 @@ const puppeteer = require('puppeteer');
       '--disable-gpu' // Disable GPU for compatibility in headless mode
     ]
   });
+  await page.waitForTimeout(5000);
 
   // Open a new page in Puppeteer
   const page = await browser.newPage();
