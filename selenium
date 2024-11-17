@@ -1,0 +1,41 @@
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
+import org.openqa.selenium.OutputType;
+import org.openqa.selenium.TakesScreenshot;
+import java.io.File;
+import org.apache.commons.io.FileUtils;
+
+public class HeadlessChromeScreenshot {
+    public static void main(String[] args) {
+        // Set the path to the ChromeDriver executable
+        System.setProperty("webdriver.chrome.driver", "/path/to/chromedriver");
+
+        // Create ChromeOptions and add headless argument
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--headless"); // Run Chrome in headless mode
+        options.addArguments("--disable-gpu"); // Disable GPU for compatibility
+        options.addArguments("--window-size=1920,1080"); // Set window size
+
+        // Launch Chrome with the options
+        WebDriver driver = new ChromeDriver(options);
+
+        try {
+            // Navigate to a website
+            driver.get("https://example.com");
+
+            // Take a screenshot
+            File screenshot = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+
+            // Specify the path to save the screenshot
+            FileUtils.copyFile(screenshot, new File("screenshot.png"));
+            System.out.println("Screenshot saved successfully!");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            // Close the browser
+            driver.quit();
+        }
+    }
+}
