@@ -1,0 +1,45 @@
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.StaleElementReferenceException;
+import org.openqa.selenium.NoSuchElementException;
+import org.openqa.selenium.support.ui.ExpectedConditions;
+import org.openqa.selenium.support.ui.FluentWait;
+
+import java.time.Duration;
+
+public class CommonMethods {
+
+    // Common method to validate WebElement's text and isDisplayed using FluentWait
+    public static boolean validateElementTextAndIsDisplayed(WebDriver driver, WebElement element, String expectedText) {
+        try {
+            // Setup FluentWait with polling interval
+            FluentWait<WebDriver> fluentWait = new FluentWait<>(driver)
+                    .withTimeout(Duration.ofSeconds(2))  // Maximum wait time
+                    .pollingEvery(Duration.ofMillis(100)) // Polling interval of 100ms
+                    .ignoring(NoSuchElementException.class) // Ignore NoSuchElementException
+                    .ignoring(StaleElementReferenceException.class); // Ignore StaleElementReferenceException
+
+            // Wait for the element to be visible
+            fluentWait.until(ExpectedConditions.visibilityOf(element));
+
+            // Check if the element is displayed
+            if (element.isDisplayed()) {
+                // Validate that the text of the element matches the expected text
+                String actualText = element.getText().trim();
+                if (actualText.equals(expectedText)) {
+                    System.out.println("Element is displayed with correct text: " + actualText);
+                    return true;
+                } else {
+                    System.out.println("Text does not match! Expected: '" + expectedText + "' but found: '" + actualText + "'");
+                    return false;
+                }
+            } else {
+                System.out.println("Element is not displayed.");
+                return false;
+            }
+        } catch (Exception e) {
+            System.out.println("Exception occurred: " + e.getMessage());
+            return false;
+        }
+    }
+}
