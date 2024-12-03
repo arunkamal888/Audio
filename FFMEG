@@ -1,0 +1,1 @@
+ffmpeg -i input.wav -filter_complex "aevalsrc=0:d=1[a];[a][0:a]concat=n=2:v=0:a=1" output.wav
