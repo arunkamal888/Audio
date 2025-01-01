@@ -1,0 +1,71 @@
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+
+public class SauceLabsAPI {
+    public static void main(String[] args) throws Exception {
+        // Replace with your Sauce Labs username, access key, and job ID
+        String username = "<username>";
+        String accessKey = "<access-key>";
+        String jobId = "<job-id>"; // Get the job ID from Sauce Labs
+
+        // Create the URL for the Sauce Labs API endpoint
+        String apiUrl = "https://api.us-west-1.saucelabs.com/v1/storage/job/" + jobId;
+        URL url = new URL(apiUrl);
+
+        // Open the connection to the Sauce Labs API
+        HttpURLConnection connection = (HttpURLConnection) url.openConnection();
+        connection.setRequestMethod("GET");
+        connection.setRequestProperty("Authorization", "Basic " + encodeCredentials(username, accessKey));
+
+        // Read the response from the API
+        BufferedReader in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+        String inputLine;
+        StringBuilder response = new StringBuilder();
+        while ((inputLine = in.readLine()) != null) {
+            response.append(inputLine);
+        }
+        in.close();
+
+        // Parse the response JSON using Jackson
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode rootNode = mapper.readTree(response.toString());
+
+        // Extract and handle dynamic fields (no hardcoded values)
+        String jobIdValue = rootNode.path("id").asText();
+        String testName = rootNode.path("name").asText();
+        String platform = rootNode.path("platform").asText(); // Platform (could be iOS, Android, Windows, macOS)
+        String browserName = rootNode.path("browserName").asText(); // Browser name (if it's a browser test)
+        String deviceName = rootNode.path("device").asText(); // Device name (if it's a mobile device test)
+        String platformVersion = rootNode.path("platformVersion").asText();
+        String os = rootNode.path("os").asText();
+        String appiumVersion = rootNode.path("appiumVersion").asText(); // If it's a mobile test
+
+        // Dynamically handle and print job details
+        System.out.println("Job ID: " + jobIdValue);
+        System.out.println("Test Name: " + testName);
+
+        // Handle platform-specific information dynamically
+        if (platform.equalsIgnoreCase("iOS") || platform.equalsIgnoreCase("Android")) {
+            // For mobile devices, print device and platform details
+            System.out.println("Platform: " + platform); // iOS, Android
+            System.out.println("Device: " + deviceName); // iPhone 12, Samsung Galaxy S20
+            System.out.println("Platform Version: " + platformVersion);
+            System.out.println("Appium Version: " + appiumVersion); // If using Appium for mobile tests
+        } else {
+            // For browser-based tests, print browser details
+            System.out.println("Platform: " + platform); // Windows, macOS
+            System.out.println("Browser: " + browserName); // Chrome, Safari, Firefox, etc.
+            System.out.println("OS: " + os);
+        }
+    }
+
+    // Helper method to encode credentials for Basic Auth
+    private static String encodeCredentials(String username, String accessKey) {
+        String auth = username + ":" + accessKey;
+        return java.util.Base64.getEncoder().encodeToString(auth.getBytes());
+    }
+}
