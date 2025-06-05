@@ -1,0 +1,51 @@
+   <dependencies>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-core</artifactId>
+            <version>1.2.3</version>
+        </dependency>
+        <dependency>
+            <groupId>com.amazonaws</groupId>
+            <artifactId>aws-lambda-java-events</artifactId>
+            <version>3.11.0</version>
+        </dependency>
+    </dependencies>
+
+
+MyRequest.java
+
+package org.example;
+
+public class MyRequest {
+    public String name;
+
+    // Getter/Setter (optional if you're using public fields)
+}
+
+
+MyResponse.java
+package org.example;
+
+public class MyResponse {
+    public String message;
+
+    public MyResponse() {}
+    public MyResponse(String message) {
+        this.message = message;
+    }
+}
+
+
+package org.example;
+
+import com.amazonaws.services.lambda.runtime.Context;
+import com.amazonaws.services.lambda.runtime.RequestHandler;
+
+public class ApiGatewayLambdaHandler implements RequestHandler<MyRequest, MyResponse> {
+
+    @Override
+    public MyResponse handleRequest(MyRequest input, Context context) {
+        context.getLogger().log("Received name: " + input.name);
+        return new MyResponse("Hello " + input.name + ", from Lambda!");
+    }
+}
